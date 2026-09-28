@@ -21,7 +21,7 @@ if sys.platform == "win32":
 import typer
 from rich.console import Console
 
-from .core.ports import scan_listening_ports, get_port_info, is_port_in_use, DEV_PROCESS_NAMES
+from .core.ports import scan_listening_ports, get_port_info, is_port_in_use, filter_visible_ports, DEV_PROCESS_NAMES
 from .core.process import free_port, prune_zombies, terminate_process
 from .core.catalog import lookup_port_context
 from .core.env import diagnose_environment, discover_system_pythons
@@ -49,34 +49,57 @@ term_width = max(115, shutil.get_terminal_size((115, 24)).columns)
 console = Console(legacy_windows=False, width=term_width)
 
 
-@app.command("ports", help="Inspect active listening TCP ports with process category and technical context.")
+@app.command("ports", help="Inspect active listening TCP ports, dev servers, and reclaimable bloat.")
 def list_ports(
     port: Optional[int] = typer.Option(None, "--port", "-p", help="Filter for a specific port number"),
-    all_ports: bool = typer.Option(False, "--all", "-a", help="Show all system and ephemeral RPC ports"),
+    all_ports: bool = typer.Option(False, "--all", "-a", help="Show all sockets, including internal IDE loopbacks"),
+    bloat: bool = typer.Option(False, "--bloat", "-b", help="Show only killable background bloat (Spotify, OneDrive)"),
+    summary: bool = typer.Option(False, "--summary", "-s", help="Show intelligent suggestions breakdown"),
+    heavy: bool = typer.Option(False, "--heavy", help="Show top memory consuming dev and background processes"),
+    ai: bool = typer.Option(False, "--ai", help="Status check for local AI stack (Ollama, Vector DBs)"),
 ):
     """Scan and list listening ports with PID, process name, category, purpose, and memory."""
+    if heavy:
+        heavy_cmd(limit=10)
+        return
+    if ai:
+        ai_status_cmd()
+        return
+    if summary:
+        summary_cmd()
+        return
+
     try:
-        ports = scan_listening_ports(port_filter=port, dev_only=not all_ports)
+        all_scanned = scan_listening_ports(port_filter=port, dev_only=False)
+        ports, hidden_count = filter_visible_ports(
+            all_scanned,
+            include_all=all_ports or (port is not None),
+            bloat_only=bloat,
+        )
+
         if not ports:
-            if port:
+            if bloat:
+                console.print(f"[green][{ICON_SUCCESS}] No useless background bloat detected. Your system is lean![/green]")
+            elif port:
                 console.print(f"[green][{ICON_SUCCESS}] Port {port} is completely free.[/green]")
             else:
-                console.print(f"[green][{ICON_SUCCESS}] No active listening development ports found.[/green]")
+                console.print(f"[green][{ICON_SUCCESS}] No active development ports found.[/green]")
             return
 
         table = render_ports_table(ports)
         console.print(table)
 
-        # Smart action suggestions
-        suggestions = render_suggestions_panel(ports)
-        console.print(suggestions)
+        # Crisp, single-line action bar
+        if hidden_count > 0 and not all_ports and not bloat:
+            console.print(f"  [dim]+ {hidden_count} internal IDE socket(s) hidden · use `devctl ports -a` to view all[/dim]")
 
-        zombie_count = sum(1 for p in ports if p.is_zombie and not p.is_system)
-        summary = f"\n[dim]Found {len(ports)} active listening port(s)"
-        if zombie_count > 0:
-            summary += f" · [bold yellow]{zombie_count} orphaned zombie(s) detected![/bold yellow] (Run `devctl zombies` to clean)"
-        summary += " · Run `devctl explain <target>` for in-depth advice.[/dim]"
-        console.print(summary)
+        bloat_procs = [p for p in ports if p.category == "BACKGROUND" or "spotify" in (p.process_name or "").lower()]
+        if bloat_procs:
+            total_bloat = sum(p.memory_mb for p in bloat_procs)
+            clean_name = bloat_procs[0].process_name.lower().replace(".exe", "")
+            console.print(f"  [bold yellow]Reclaimable[/bold yellow]: [green]~{total_bloat:.0f} MB RAM[/green] in background bloat · Run [bold cyan]`devctl free {clean_name}`[/bold cyan] to reclaim")
+
+        console.print(f"  [dim]Showing {len(ports)} socket(s) · Run `devctl explain <target>` for plain-English advice[/dim]\n")
 
     except ValueError as ve:
         console.print(f"[bold red][{ICON_ERROR}] {str(ve)}[/bold red]")
@@ -204,13 +227,27 @@ def explain_port_cmd(
         console.print(panel)
 
 
-@app.command("free", help="Safely free one or more occupied ports, PIDs, or process names.")
+@app.command("free", help="Safely free occupied ports, PIDs, or background apps (e.g. devctl free spotify).")
 def free_ports_cmd(
-    targets: List[str] = typer.Argument(..., help="One or more ports, PIDs, or process names (e.g. 8000, 30828, or spotify)"),
+    targets: Optional[List[str]] = typer.Argument(None, help="One or more ports, PIDs, or process names (e.g. 8000, 30828, or spotify)"),
+    zombies: bool = typer.Option(False, "--zombies", "-z", help="Prune all detected orphaned zombie development processes"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     force: bool = typer.Option(False, "--force", "-f", help="Force termination on privileged ports (<1024)"),
 ):
     """Frees ports or terminates processes using two-stage termination with TOCTOU race protection."""
+    if zombies:
+        handle_zombies(prune=yes)
+        if not targets:
+            return
+
+    if not targets:
+        console.print("[yellow]Usage: devctl free <port | PID | name> or devctl free --zombies[/yellow]")
+        console.print("Examples:")
+        console.print("  `devctl free 8000`           (free port 8000)")
+        console.print("  `devctl free spotify`        (kill Spotify instances & reclaim RAM)")
+        console.print("  `devctl free --zombies`      (prune dead/orphaned processes)")
+        return
+
     for target in targets:
         target_clean = target.strip()
         if target_clean.isdigit():
@@ -343,7 +380,7 @@ def free_ports_cmd(
         console.print(f"[bold green][{ICON_SUCCESS}] Successfully terminated {killed}/{len(pids)} process(es) for '{target_clean}'. Reclaimed ~{total_mem:.1f} MB RAM.[/bold green]")
 
 
-@app.command("summary", help="Quick executive summary of RAM usage, active dev servers, and safe-to-kill bloat.")
+@app.command("summary", hidden=True)
 @app.command("digest", hidden=True)
 def summary_cmd():
     """Generates an instant high-level digest for vibe coders and developers."""
@@ -352,7 +389,7 @@ def summary_cmd():
     console.print(panel)
 
 
-@app.command("heavy", help="Scan and rank the heaviest development, AI, and background processes by RAM usage.")
+@app.command("heavy", hidden=True)
 def heavy_cmd(
     limit: int = typer.Option(10, "--limit", "-n", help="Number of processes to display"),
 ):
@@ -420,7 +457,7 @@ def heavy_cmd(
     console.print(table)
 
 
-@app.command("ai", help="Status check for local AI stack (Ollama, Vector DBs, Gradio, Streamlit).")
+@app.command("ai", hidden=True)
 def ai_status_cmd():
     """Inspects status of local AI inference engines and vector databases."""
     ai_checks = [
@@ -452,7 +489,7 @@ def ai_status_cmd():
     console.print(panel)
 
 
-@app.command("ctx", help="Generate a clean markdown context snapshot for AI coding agents (Claude, Antigravity).")
+@app.command("ctx", hidden=True)
 def export_context_cmd():
     """Outputs ground-truth environment context to paste into an AI agent prompt."""
     diag = diagnose_environment()
@@ -483,7 +520,7 @@ def export_context_cmd():
     console.print("\n".join(lines))
 
 
-@app.command("zombies", help="Scan and prune lingering/orphaned development processes.")
+@app.command("zombies", hidden=True)
 def handle_zombies(
     prune: bool = typer.Option(False, "--prune", "-p", help="Immediately prune all detected zombies without prompting"),
 ):
@@ -509,15 +546,25 @@ def handle_zombies(
     console.print(f"[bold green][{ICON_SUCCESS}] Successfully cleaned up {len(pruned)} zombie process(es).[/bold green]")
 
 
-@app.command("doctor", help="Run 5-point environment health audit on local Python and virtualenv.")
-def doctor_cmd():
+@app.command("doctor", help="Audit Python environment health, virtualenv parity, and PATH desyncs.")
+def doctor_cmd(
+    py: bool = typer.Option(False, "--py", "-p", help="Catalog all Python runtimes installed across your machine"),
+    ctx: bool = typer.Option(False, "--ctx", "-c", help="Generate clean markdown context snapshot for AI coding agents"),
+):
     """Diagnoses PATH desyncs, missing virtualenvs, and pip/python alignment."""
+    if py:
+        catalog_pythons()
+        return
+    if ctx:
+        export_context_cmd()
+        return
+
     diag = diagnose_environment()
     panel = render_doctor_panel(diag)
     console.print(panel)
 
 
-@app.command("py", help="Catalog all Python runtimes installed across your machine.")
+@app.command("py", hidden=True)
 def catalog_pythons():
     """Lists Windows py launcher runtimes, MSYS2, PATH pythons, and local venvs."""
     runtimes = discover_system_pythons()

@@ -8,6 +8,7 @@ BADGE_ACTIVE = "[bold green]ACTIVE[/bold green]"
 BADGE_ZOMBIE = "[bold yellow]ZOMBIE[/bold yellow]"
 BADGE_SYSTEM = "[dim]SYSTEM[/dim]"
 BADGE_FREE = "[bold blue]FREE[/bold blue]"
+BADGE_BLOAT = "[bold yellow]BLOAT[/bold yellow]"
 
 # Category Badges (Clean monospace brackets)
 CAT_SYSTEM = "[dim]SYSTEM[/dim]"

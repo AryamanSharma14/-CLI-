@@ -5,14 +5,13 @@ runner = CliRunner()
 
 
 def test_cli_help():
-    """devctl --help should return code 0 and show all main commands."""
+    """devctl --help should return code 0 and show the consolidated primary commands."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "ports" in result.output
+    assert "explain" in result.output
     assert "free" in result.output
     assert "doctor" in result.output
-    assert "zombies" in result.output
-    assert "py" in result.output
     assert "run" in result.output
     assert "add" in result.output
 
@@ -104,4 +103,24 @@ def test_cli_summary():
     result = runner.invoke(app, ["summary"])
     assert result.exit_code == 0
     assert "SMART PORT INTELLIGENCE" in result.output
+
+
+def test_cli_ports_bloat_flag():
+    """devctl ports -b should run cleanly."""
+    result = runner.invoke(app, ["ports", "-b"])
+    assert result.exit_code == 0
+
+
+def test_cli_doctor_py_flag():
+    """devctl doctor -p should catalog installed Python runtimes."""
+    result = runner.invoke(app, ["doctor", "-p"])
+    assert result.exit_code == 0
+    assert "Installed Python Runtimes" in result.output
+
+
+def test_cli_free_zombies_flag():
+    """devctl free -z should safely check zombies."""
+    result = runner.invoke(app, ["free", "-z", "-y"])
+    assert result.exit_code == 0
+
 

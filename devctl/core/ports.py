@@ -4,7 +4,7 @@ Inspects active TCP listeners, identifies the bound process, working directory,
 command line, and detects orphaned/zombie states.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import os
 import psutil
 
@@ -123,7 +123,7 @@ def scan_listening_ports(port_filter: Optional[int] = None, dev_only: bool = Fal
                 info.is_system = is_system_process(pid, info.process_name)
 
         # Contextual intelligence lookup
-        ctx = lookup_port_context(port, info.process_name, info.cmdline)
+        ctx = lookup_port_context(port, info.process_name, info.cmdline, pid=info.pid)
         info.category = ctx.category
         info.purpose = ctx.purpose
 
@@ -136,6 +136,42 @@ def scan_listening_ports(port_filter: Optional[int] = None, dev_only: bool = Fal
     # Sort results by port ascending
     results.sort(key=lambda x: x.port)
     return results
+
+
+def filter_visible_ports(
+    ports: List[PortInfo],
+    include_all: bool = False,
+    bloat_only: bool = False,
+) -> Tuple[List[PortInfo], int]:
+    """
+    Filters out noise like internal IDE/editor loopback IPC sockets (> 1024)
+    and ephemeral Windows RPC system sockets to keep the CLI clean and focused.
+    Returns (visible_ports, hidden_count).
+    """
+    if bloat_only:
+        bloat_ports = [
+            p for p in ports
+            if p.category == "BACKGROUND"
+            or "spotify" in (p.process_name or "").lower()
+            or "onedrive" in (p.process_name or "").lower()
+        ]
+        return bloat_ports, max(0, len(ports) - len(bloat_ports))
+
+    if include_all:
+        return ports, 0
+
+    visible = []
+    hidden_count = 0
+    for p in ports:
+        # Hide internal IDE/editor loopback sockets (VS Code, Antigravity, language servers on ephemeral ports)
+        if p.category == "IDE" and p.port >= 1024:
+            hidden_count += 1
+        elif p.is_system and p.port >= 49152:
+            hidden_count += 1
+        else:
+            visible.append(p)
+
+    return visible, hidden_count
 
 
 def get_port_info(port: int) -> Optional[PortInfo]:

@@ -14,6 +14,7 @@ from .theme import (
     BADGE_ACTIVE,
     BADGE_ZOMBIE,
     BADGE_SYSTEM,
+    BADGE_BLOAT,
     CAT_SYSTEM,
     CAT_DATABASE,
     CAT_AI_LLM,
@@ -84,6 +85,8 @@ def render_ports_table(ports: List[PortInfo]) -> Table:
             badge = BADGE_SYSTEM
         elif p.is_zombie:
             badge = BADGE_ZOMBIE
+        elif p.category == "BACKGROUND" or "spotify" in (p.process_name or "").lower():
+            badge = BADGE_BLOAT
         else:
             badge = BADGE_ACTIVE
 
@@ -140,7 +143,12 @@ def render_explain_panel(
     if info and info.cwd:
         lines.append(f"  WORKING DIR    : [dim]{info.cwd}[/dim]")
     if info and info.cmdline:
-        lines.append(f"  COMMAND        : [dim]{info.cmdline}[/dim]")
+        cmd_str = info.cmdline
+        if "--type=utility" in cmd_str or "--field-trial-handle" in cmd_str:
+            cmd_str = f"{info.process_name} (background worker process)"
+        elif len(cmd_str) > 85:
+            cmd_str = _truncate_str(cmd_str, max_len=85)
+        lines.append(f"  COMMAND        : [dim]{cmd_str}[/dim]")
 
     lines.append("")
     lines.append("[dim]────────────────────────────────────────────────────────────────────────[/dim]")
@@ -256,10 +264,10 @@ def render_suggestions_panel(ports: List[PortInfo]) -> Panel:
 
     if ide_tools:
         has_content = True
-        lines.append("[bold cyan]• ACTIVE CODING TOOLS & IDES (Keep running · Never terminate while coding):[/bold cyan]")
-        for p in ide_tools:
-            proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
-            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · Active editor window")
+        unique_editors = sorted(list({p.process_name for p in ide_tools if p.process_name}))
+        editor_str = ", ".join(unique_editors) if unique_editors else "Antigravity / VS Code"
+        lines.append(f"[bold cyan]• ACTIVE CODING TOOLS ({len(ide_tools)} internal socket(s) · Keep running · Never kill):[/bold cyan]")
+        lines.append(f"  {MARK_BULLET} Running: [white]{editor_str}[/white] · Active code editor workspace")
         lines.append("")
 
     if system_ports:
