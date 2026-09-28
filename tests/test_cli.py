@@ -1,3 +1,4 @@
+import json
 from typer.testing import CliRunner
 from devctl.main import app
 
@@ -14,6 +15,7 @@ def test_cli_help():
     assert "doctor" in result.output
     assert "run" in result.output
     assert "add" in result.output
+    assert "mcp" in result.output
 
 
 def test_cli_doctor():
@@ -122,5 +124,45 @@ def test_cli_free_zombies_flag():
     """devctl free -z should safely check zombies."""
     result = runner.invoke(app, ["free", "-z", "-y"])
     assert result.exit_code == 0
+
+
+def test_cli_ports_json_flag():
+    """devctl ports --json should output a valid JSON array."""
+    result = runner.invoke(app, ["ports", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+
+
+def test_cli_explain_json_flag():
+    """devctl explain <target> --json should output a valid JSON object."""
+    result = runner.invoke(app, ["explain", "3306", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "target" in data
+    assert "context" in data
+    assert data["context"]["category"] == "DATABASE"
+
+
+def test_cli_doctor_json_flag():
+    """devctl doctor --json should output a valid JSON diagnostic report."""
+    result = runner.invoke(app, ["doctor", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "project_dir" in data
+    assert "issues" in data
+
+
+def test_cli_free_dev_flag():
+    """devctl free --dev -y should run without error."""
+    result = runner.invoke(app, ["free", "--dev", "-y"])
+    assert result.exit_code == 0
+
+
+def test_cli_run_free_port_flag():
+    """devctl run --free-port on an unoccupied port should run target command and exit 0."""
+    result = runner.invoke(app, ["run", "--free-port", "64899", "python", "-c", "import sys; sys.exit(0)"])
+    assert result.exit_code == 0
+
 
 

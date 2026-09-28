@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="#-test-matrix--verification"><img src="https://img.shields.io/badge/tests-39%20passed%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing"></a>
+  <a href="#-test-matrix--verification"><img src="https://img.shields.io/badge/tests-51%20passed%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing"></a>
   <a href="#-architecture"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="#-security-threat-model--system-safety"><img src="https://img.shields.io/badge/security-TOCTOU%20%26%20PID%20Shield-purple.svg?style=flat-square" alt="Security Hardened"></a>
   <a href="#-how-devctl-compares"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg?style=flat-square" alt="Cross-Platform"></a>
@@ -92,14 +92,15 @@ Usage: devctl [OPTIONS] COMMAND [ARGS]...
 Commands:
   ports     Inspect active listening TCP ports with noise filtering & smart reclaim actions.
   explain   Analyze what a port, PID, or process does in plain English.
-  free      Safely free ports, PIDs, or processes by name (or prune zombies with -z).
+  free      Safely free ports, PIDs, or processes by name (or sweep dev servers with -d).
   doctor    Run 5-point environment health audit on local Python, virtualenv & system runtimes.
   run       Execute a command directly inside the local project .venv without manual activation.
   add       Safely install a Python package into the project's .venv and record in requirements.txt.
+  mcp       Launch native Model Context Protocol (MCP) server over stdio for AI coding agents.
 ```
 
 > [!TIP]
-> **Minimalist by design**: Rather than cluttering your CLI with dozens of sprawling commands, `devctl` uses intuitive flags (`-b` for bloat, `-z` for zombies, `-p` for Python versions, `-a` for all sockets). Legacy shortcuts (`devctl summary`, `devctl ai`, `devctl heavy`, `devctl zombies`, `devctl py`, `devctl ctx`) remain 100% backward compatible!
+> **Minimalist by design**: Rather than cluttering your CLI with dozens of sprawling commands, `devctl` uses intuitive flags (`-d` to sweep dev servers, `-b` for bloat, `-z` for zombies, `-p` for Python versions, `-a` for all sockets, `--json` for automation). Legacy shortcuts (`devctl summary`, `devctl ai`, `devctl heavy`, `devctl zombies`, `devctl py`, `devctl ctx`) remain 100% backward compatible!
 
 ---
 
@@ -131,6 +132,9 @@ devctl ports --heavy
 # AI stack health check (Ollama, ChromaDB, vLLM, Gradio)
 devctl ports --ai
 # or devctl ai
+
+# Machine-readable JSON array output
+devctl ports --json
 ```
 
 ```text
@@ -178,6 +182,9 @@ devctl explain 34336
 # By Name
 devctl explain spotify
 devctl explain antigravity
+
+# Machine-readable JSON output
+devctl explain 7768 --json
 ```
 
 ```text
@@ -210,9 +217,18 @@ devctl explain antigravity
 ### `devctl free <targets...>`
 Safely frees one or more ports, PIDs, or processes by name using two-stage termination (SIGTERM -> 1.5s -> SIGKILL).
 
-Includes a built-in zombie hunter flag (`-z` / `--zombies`) to prune dead or orphaned terminal workers:
+* **Interactive Keystroke Picker**: Simply run `devctl free` without arguments in an interactive terminal to choose targets with a single keystroke.
+* **"Start Fresh" Dev Sweeper (`-d` / `--dev`)**: Sweeps and terminates all hung Node, Vite, Next.js, Uvicorn, and Flask dev servers holding ports, while strictly protecting databases and code editors.
+* **Zombie Hunter (`-z` / `--zombies`)**: Scans and prunes orphaned background dev processes.
 
 ```bash
+# Interactive numbered keystroke picker (run with zero args)
+devctl free
+
+# "Start Fresh" dev server sweeper (kills lingering Node/Python dev servers)
+devctl free --dev
+devctl free -d -y   # bypass confirmation
+
 # Free a port
 devctl free 8000
 
@@ -235,7 +251,7 @@ devctl free -z
 ### `devctl doctor`
 Audits your active Python interpreter against `.venv` and flags PATH mismatches between `pip` and `python`.
 
-Supports installed runtime cataloging (`-p` / `--py`) and AI context generation (`-c` / `--ctx`):
+Supports installed runtime cataloging (`-p` / `--py`), AI context generation (`-c` / `--ctx`), and JSON output (`--json`):
 
 ```bash
 # Run 5-point environment health audit
@@ -248,6 +264,9 @@ devctl doctor -p
 # Generate clean markdown context snapshot for AI coding agents
 devctl doctor -c
 # or devctl doctor --ctx (or legacy `devctl ctx`)
+
+# Output machine-readable JSON report
+devctl doctor --json
 ```
 
 ```text
@@ -255,22 +274,28 @@ devctl doctor -c
 ╭────────────────┬────────────┬────────────────────────┬──────────────────────────────────────────────────────────╮
 │ TAG            │ VERSION    │ SOURCE                 │ EXECUTABLE PATH                                          │
 ├────────────────┼────────────┼────────────────────────┼──────────────────────────────────────────────────────────┤
-│ * 3.13         │ 3.13       │ Windows py launcher    │ C:\Users\aryam\AppData\Local\Programs\Python\Python313\… │
-│   3.10         │ 3.10       │ Windows py launcher    │ C:\Users\aryam\AppData\Local\Programs\Python\Python310\… │
+│ * 3.13         │ 3.13       │ Windows py launcher    │ C:\Users\developer\AppData\Local\Programs\Python313\…    │
+│   3.10         │ 3.10       │ Windows py launcher    │ C:\Users\developer\AppData\Local\Programs\Python310\…    │
 │   msys         │ 3.13.5     │ MSYS2 MinGW            │ C:\msys64\mingw64\bin\python.exe                         │
 │   msys         │ 3.13.5     │ MSYS2 MinGW            │ C:\msys64\mingw64\bin\python3.exe                        │
-│   project-venv │ 3.13.5     │ Project (.venv)        │ C:\Users\aryam\Desktop\yee\coding\cli\.venv\Scripts\pyt… │
+│   project-venv │ 3.13.5     │ Project (.venv)        │ C:\Users\developer\projects\my-app\.venv\Scripts\pyt…    │
 ╰────────────────┴────────────┴────────────────────────┴──────────────────────────────────────────────────────────╯
 ```
 
 ---
 
 ### `devctl run <cmd>`
-Runs any command directly inside the project's `.venv` without manual shell activation:
+Runs any command directly inside the project's `.venv` without manual shell activation.
+
+Includes **Pre-Flight Port Clearing (`-f` / `--free-port`)** to prevent the `EADDRINUSE` crash loop before starting your server:
 
 ```bash
+# Pre-flight: Clear port 3000 if occupied, then launch dev server
+devctl run --free-port 3000 npm run dev
+devctl run -f 8000 uvicorn main:app --reload
+
+# Standard zero-activation runner
 devctl run pytest tests -v
-devctl run uvicorn main:app --reload
 ```
 
 ---
@@ -280,6 +305,41 @@ Safely installs a Python package into the project's `.venv` using the matching `
 
 ```bash
 devctl add fastapi uvicorn
+```
+
+---
+
+### `devctl mcp`
+Launches a native **Model Context Protocol (MCP)** server over standard I/O (JSON-RPC 2.0).
+
+Allows AI coding assistants (such as **Cursor**, **Claude Desktop**, and **Antigravity**) to autonomously inspect listening ports, diagnose localhost collisions, and safely free stuck development servers.
+
+```bash
+devctl mcp
+```
+
+#### Configuration for Cursor (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "devctl": {
+      "command": "devctl",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### Configuration for Claude Desktop (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "devctl": {
+      "command": "devctl",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 ---
@@ -304,52 +364,64 @@ pytest tests -v
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
-rootdir: C:\Users\aryam\Desktop\yee\coding\cli
+rootdir: C:\Users\developer\projects\my-app
 configfile: pyproject.toml
 plugins: anyio-4.10.0
-collected 39 items
+collected 51 items
 
-tests/test_catalog.py::test_lookup_system_port PASSED                    [  2%]
-tests/test_catalog.py::test_lookup_database_port PASSED                  [  5%]
-tests/test_catalog.py::test_lookup_ai_ollama_port PASSED                 [  7%]
-tests/test_catalog.py::test_lookup_disambiguation_port_8000 PASSED       [ 10%]
-tests/test_catalog.py::test_lookup_ide_process PASSED                    [ 12%]
-tests/test_catalog.py::test_lookup_safe_to_kill_background PASSED        [ 15%]
-tests/test_catalog.py::test_vibe_coder_explanation_fields PASSED         [ 17%]
-tests/test_cli.py::test_cli_help PASSED                                  [ 20%]
-tests/test_cli.py::test_cli_doctor PASSED                                [ 23%]
-tests/test_cli.py::test_cli_py PASSED                                    [ 25%]
-tests/test_cli.py::test_cli_ports PASSED                                 [ 28%]
-tests/test_cli.py::test_cli_explain PASSED                               [ 30%]
-tests/test_cli.py::test_cli_heavy PASSED                                 [ 33%]
-tests/test_cli.py::test_cli_ai PASSED                                    [ 35%]
-tests/test_cli.py::test_cli_ctx PASSED                                   [ 38%]
-tests/test_cli.py::test_cli_ports_invalid_filter PASSED                  [ 41%]
-tests/test_cli.py::test_cli_free_already_free_port PASSED                [ 43%]
-tests/test_cli.py::test_cli_explain_process_name PASSED                  [ 46%]
-tests/test_cli.py::test_cli_explain_pid PASSED                           [ 48%]
-tests/test_cli.py::test_cli_summary PASSED                               [ 51%]
-tests/test_cli.py::test_cli_ports_bloat_flag PASSED                      [ 53%]
-tests/test_cli.py::test_cli_doctor_py_flag PASSED                        [ 56%]
-tests/test_cli.py::test_cli_free_zombies_flag PASSED                     [ 58%]
-tests/test_env.py::test_find_local_venv PASSED                           [ 61%]
-tests/test_env.py::test_get_venv_python_executable PASSED                [ 64%]
-tests/test_env.py::test_diagnose_environment PASSED                      [ 66%]
-tests/test_env.py::test_discover_system_pythons PASSED                   [ 69%]
-tests/test_ports.py::test_scan_listening_ports_returns_list PASSED       [ 71%]
-tests/test_ports.py::test_mock_tcp_listener_detection PASSED             [ 74%]
-tests/test_process.py::test_terminate_system_process_blocked PASSED      [ 76%]
-tests/test_process.py::test_terminate_user_process_success PASSED        [ 79%]
-tests/test_process.py::test_free_port_on_already_free_port PASSED        [ 82%]
-tests/test_security.py::test_system_process_protection_by_pid PASSED     [ 84%]
-tests/test_security.py::test_system_process_protection_by_name PASSED    [ 87%]
-tests/test_security.py::test_dev_process_not_system PASSED               [ 89%]
-tests/test_security.py::test_validate_port_valid PASSED                  [ 92%]
-tests/test_security.py::test_validate_port_out_of_range PASSED           [ 94%]
-tests/test_security.py::test_privileged_port PASSED                      [ 97%]
+tests/test_catalog.py::test_lookup_system_port PASSED                    [  1%]
+tests/test_catalog.py::test_lookup_database_port PASSED                  [  3%]
+tests/test_catalog.py::test_lookup_ai_ollama_port PASSED                 [  5%]
+tests/test_catalog.py::test_lookup_disambiguation_port_8000 PASSED       [  7%]
+tests/test_catalog.py::test_lookup_ide_process PASSED                    [  9%]
+tests/test_catalog.py::test_lookup_safe_to_kill_background PASSED        [ 11%]
+tests/test_catalog.py::test_vibe_coder_explanation_fields PASSED         [ 13%]
+tests/test_cli.py::test_cli_help PASSED                                  [ 15%]
+tests/test_cli.py::test_cli_doctor PASSED                                [ 17%]
+tests/test_cli.py::test_cli_py PASSED                                    [ 19%]
+tests/test_cli.py::test_cli_ports PASSED                                 [ 21%]
+tests/test_cli.py::test_cli_explain PASSED                               [ 23%]
+tests/test_cli.py::test_cli_heavy PASSED                                 [ 25%]
+tests/test_cli.py::test_cli_ai PASSED                                    [ 27%]
+tests/test_cli.py::test_cli_ctx PASSED                                   [ 29%]
+tests/test_cli.py::test_cli_ports_invalid_filter PASSED                  [ 31%]
+tests/test_cli.py::test_cli_free_already_free_port PASSED                [ 33%]
+tests/test_cli.py::test_cli_explain_process_name PASSED                  [ 35%]
+tests/test_cli.py::test_cli_explain_pid PASSED                           [ 37%]
+tests/test_cli.py::test_cli_summary PASSED                               [ 39%]
+tests/test_cli.py::test_cli_ports_bloat_flag PASSED                      [ 41%]
+tests/test_cli.py::test_cli_doctor_py_flag PASSED                        [ 43%]
+tests/test_cli.py::test_cli_free_zombies_flag PASSED                     [ 45%]
+tests/test_cli.py::test_cli_ports_json_flag PASSED                       [ 47%]
+tests/test_cli.py::test_cli_explain_json_flag PASSED                     [ 49%]
+tests/test_cli.py::test_cli_doctor_json_flag PASSED                      [ 50%]
+tests/test_cli.py::test_cli_free_dev_flag PASSED                         [ 52%]
+tests/test_cli.py::test_cli_run_free_port_flag PASSED                    [ 54%]
+tests/test_env.py::test_find_local_venv PASSED                           [ 56%]
+tests/test_env.py::test_get_venv_python_executable PASSED                [ 58%]
+tests/test_env.py::test_diagnose_environment PASSED                      [ 60%]
+tests/test_env.py::test_discover_system_pythons PASSED                   [ 62%]
+tests/test_mcp.py::test_mcp_tools_spec PASSED                            [ 64%]
+tests/test_mcp.py::test_mcp_call_list_ports PASSED                       [ 66%]
+tests/test_mcp.py::test_mcp_call_explain_target PASSED                   [ 68%]
+tests/test_mcp.py::test_mcp_call_explain_invalid PASSED                  [ 70%]
+tests/test_mcp.py::test_mcp_call_doctor PASSED                           [ 72%]
+tests/test_mcp.py::test_mcp_call_free_dev_servers PASSED                 [ 74%]
+tests/test_mcp.py::test_mcp_call_free_system_protection PASSED           [ 76%]
+tests/test_ports.py::test_scan_listening_ports_returns_list PASSED       [ 78%]
+tests/test_ports.py::test_mock_tcp_listener_detection PASSED             [ 80%]
+tests/test_process.py::test_terminate_system_process_blocked PASSED      [ 82%]
+tests/test_process.py::test_terminate_user_process_success PASSED        [ 84%]
+tests/test_process.py::test_free_port_on_already_free_port PASSED        [ 86%]
+tests/test_security.py::test_system_process_protection_by_pid PASSED     [ 88%]
+tests/test_security.py::test_system_process_protection_by_name PASSED    [ 90%]
+tests/test_security.py::test_dev_process_not_system PASSED               [ 92%]
+tests/test_security.py::test_validate_port_valid PASSED                  [ 94%]
+tests/test_security.py::test_validate_port_out_of_range PASSED           [ 96%]
+tests/test_security.py::test_privileged_port PASSED                      [ 98%]
 tests/test_security.py::test_toctou_process_identity PASSED              [100%]
 
-============================= 39 passed in 4.05s ==============================
+============================= 51 passed in 12.24s =============================
 ```
 
 ---

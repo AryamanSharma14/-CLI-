@@ -24,6 +24,21 @@ class PortContext:
     what_breaks: str = ""          # Direct explanation of what will break if terminated
     how_to_kill: str = ""          # Practical command or guidance
 
+    def to_dict(self) -> dict:
+        return {
+            "port": self.port,
+            "category": self.category,
+            "purpose": self.purpose,
+            "safety_verdict": self.safety_verdict,
+            "recommendation": self.recommendation,
+            "what_is_it": self.what_is_it,
+            "is_useless_or_mandatory": self.is_useless_or_mandatory,
+            "can_i_kill": self.can_i_kill,
+            "what_breaks": self.what_breaks,
+            "how_to_kill": self.how_to_kill,
+        }
+
+
 
 # Standard port mappings:
 # (category, purpose, safety_verdict, recommendation, what_is_it, is_useless_or_mandatory, can_i_kill, what_breaks, how_to_kill)

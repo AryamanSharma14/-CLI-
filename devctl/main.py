@@ -5,6 +5,7 @@ Defines commands: ports, explain, free, zombies, heavy, ai, ctx, doctor, py, run
 
 from typing import List, Optional
 import sys
+import json
 import shutil
 import platform
 import psutil
@@ -21,7 +22,15 @@ if sys.platform == "win32":
 import typer
 from rich.console import Console
 
-from .core.ports import scan_listening_ports, get_port_info, is_port_in_use, filter_visible_ports, DEV_PROCESS_NAMES
+from .core.ports import (
+    scan_listening_ports,
+    get_port_info,
+    is_port_in_use,
+    filter_visible_ports,
+    find_dev_servers,
+    is_ancestor_or_self_process,
+    DEV_PROCESS_NAMES,
+)
 from .core.process import free_port, prune_zombies, terminate_process
 from .core.catalog import lookup_port_context
 from .core.env import diagnose_environment, discover_system_pythons
@@ -57,6 +66,7 @@ def list_ports(
     summary: bool = typer.Option(False, "--summary", "-s", help="Show intelligent suggestions breakdown"),
     heavy: bool = typer.Option(False, "--heavy", help="Show top memory consuming dev and background processes"),
     ai: bool = typer.Option(False, "--ai", help="Status check for local AI stack (Ollama, Vector DBs)"),
+    json_out: bool = typer.Option(False, "--json", help="Output machine-readable JSON array of port details"),
 ):
     """Scan and list listening ports with PID, process name, category, purpose, and memory."""
     if heavy:
@@ -76,6 +86,10 @@ def list_ports(
             include_all=all_ports or (port is not None),
             bloat_only=bloat,
         )
+
+        if json_out:
+            print(json.dumps([p.to_dict() for p in ports], indent=2))
+            return
 
         if not ports:
             if bloat:
@@ -109,6 +123,7 @@ def list_ports(
 @app.command("explain", help="Analyze what a specific port, PID, or process does in plain English.")
 def explain_port_cmd(
     target: str = typer.Argument(..., help="Port number (e.g. 3000), PID (e.g. 30828), or process name (e.g. 'spotify')"),
+    json_out: bool = typer.Option(False, "--json", help="Output machine-readable JSON explanation"),
 ):
     """Provides plain English explanation, safety verdict, and recommendation for any port or process."""
     target_clean = target.strip()
@@ -128,6 +143,9 @@ def explain_port_cmd(
 
         if port_info is not None:
             ctx = lookup_port_context(num, port_info.process_name, port_info.cmdline, pid=port_info.pid)
+            if json_out:
+                print(json.dumps({"target": f"Port {num}", "context": ctx.to_dict(), "process": port_info.to_dict()}, indent=2))
+                return
             panel = render_explain_panel(ctx, port_info, target_label=f"Port {num}")
             console.print(panel)
             return
@@ -158,11 +176,17 @@ def explain_port_cmd(
                 memory_mb=mem_mb,
             )
             ctx = lookup_port_context(primary_port, p_name, cmdline, pid=num)
+            if json_out:
+                print(json.dumps({"target": f"PID {num} ({p_name})", "context": ctx.to_dict(), "process": info.to_dict()}, indent=2))
+                return
             panel = render_explain_panel(ctx, info, target_label=f"PID {num} ({p_name})")
             console.print(panel)
             return
         elif 1 <= num <= 65535:
             ctx = lookup_port_context(num, "", "")
+            if json_out:
+                print(json.dumps({"target": f"Port {num}", "status": "INACTIVE", "context": ctx.to_dict()}, indent=2))
+                return
             panel = render_explain_panel(ctx, None, target_label=f"Port {num} (Inactive)")
             console.print(panel)
             return
@@ -213,6 +237,14 @@ def explain_port_cmd(
         )
         ctx = lookup_port_context(primary_port, p_name, p_cmdline, pid=p_pid)
         count_desc = f" ({len(matching_procs)} instances, primary PID {p_pid})" if len(matching_procs) > 1 else f" (PID {p_pid})"
+        if json_out:
+            print(json.dumps({
+                "target": f"{p_name}{count_desc}",
+                "context": ctx.to_dict(),
+                "process": info.to_dict(),
+                "instances_count": len(matching_procs)
+            }, indent=2))
+            return
         panel = render_explain_panel(ctx, info, target_label=f"{p_name}{count_desc}")
         console.print(panel)
     else:
@@ -223,27 +255,135 @@ def explain_port_cmd(
             status="NOT_RUNNING",
             process_name=target_clean,
         )
+        if json_out:
+            print(json.dumps({"target": target_clean, "status": "NOT_RUNNING", "context": ctx.to_dict()}, indent=2))
+            return
         panel = render_explain_panel(ctx, info, target_label=f"{target_clean} (Not Currently Running)")
         console.print(panel)
+
+
+def handle_free_dev_servers(yes: bool = False):
+    """Sweeps and safely terminates all lingering dev servers holding ports."""
+    dev_servers = find_dev_servers()
+    if not dev_servers:
+        console.print(f"[bold green][{ICON_SUCCESS}] No active development servers found holding ports.[/bold green]")
+        return
+
+    total_mem = sum(s.memory_mb for s in dev_servers)
+    console.print(f"[bold yellow]Found {len(dev_servers)} lingering development server(s):[/bold yellow]")
+    for s in dev_servers:
+        console.print(f"  {MARK_BULLET} Port [bold cyan]{s.port}[/bold cyan] · PID [yellow]{s.pid}[/yellow] ({s.process_name}) · {s.memory_mb:.1f} MB RAM · [dim]{s.display_cmd}[/dim]")
+
+    if not yes:
+        confirm = typer.confirm(f"Terminate all {len(dev_servers)} dev server(s) and reclaim ~{total_mem:.0f} MB RAM?", default=True)
+        if not confirm:
+            console.print("[dim]Aborted.[/dim]")
+            return
+
+    freed = 0
+    reclaimed_mem = 0.0
+    for s in dev_servers:
+        if s.port:
+            ok, msg, _ = free_port(s.port)
+            if ok:
+                freed += 1
+                reclaimed_mem += s.memory_mb
+                console.print(f"  [{ICON_SUCCESS}] Port [bold cyan]{s.port}[/bold cyan] freed ({s.process_name})")
+            else:
+                console.print(f"  [{ICON_ERROR}] Failed to free Port {s.port}: {msg}")
+    console.print(f"[bold green][{ICON_SUCCESS}] Reset complete: Freed {freed} dev server port(s) and reclaimed ~{reclaimed_mem:.0f} MB RAM.[/bold green]")
+
+
+def handle_interactive_free():
+    """Presents a numbered keystroke menu to select targets to free in interactive shells."""
+    ports = scan_listening_ports()
+    candidates: List[PortInfo] = []
+    for p in ports:
+        if p.is_system or not p.pid:
+            continue
+        if is_ancestor_or_self_process(p.pid):
+            continue
+        if p.category in ("SYSTEM", "IDE"):
+            continue
+        if p.category in ("BACKGROUND", "DEV") or "spotify" in (p.process_name or "").lower():
+            candidates.append(p)
+
+    if not candidates:
+        console.print("[bold green]No reclaimable background bloat or dev servers detected. System is clean![/bold green]")
+        return
+
+    console.print("\n[bold]Active Reclaimable Targets:[/bold]")
+    for idx, c in enumerate(candidates, start=1):
+        status_tag = "[bold yellow]BLOAT[/bold yellow]" if (c.category == "BACKGROUND" or "spotify" in (c.process_name or "").lower()) else "[bold cyan]DEV[/bold cyan]"
+        console.print(f"  [{idx}] Port [bold cyan]{c.port:<5}[/bold cyan] · [yellow]{c.process_name:<18}[/yellow] (PID {c.pid}) · {status_tag} · {c.memory_mb:.1f} MB · [dim]{c.display_cmd}[/dim]")
+
+    console.print()
+    try:
+        choice = typer.prompt("Select target(s) to free [e.g. 1, 2 or 'a' for all, 'q' to cancel]", default="q")
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[dim]Cancelled.[/dim]")
+        return
+
+    choice_str = choice.strip().lower()
+    if choice_str in ("q", "quit", "cancel", ""):
+        console.print("[dim]No processes terminated.[/dim]")
+        return
+
+    selected_targets: List[PortInfo] = []
+    if choice_str in ("a", "all"):
+        selected_targets = candidates
+    else:
+        parts = choice_str.replace(",", " ").split()
+        for p in parts:
+            if p.isdigit():
+                idx = int(p)
+                if 1 <= idx <= len(candidates):
+                    selected_targets.append(candidates[idx - 1])
+
+    if not selected_targets:
+        console.print("[yellow]No valid targets selected.[/yellow]")
+        return
+
+    total_reclaimed = 0.0
+    for t in selected_targets:
+        ok, msg, _ = free_port(t.port)
+        if ok:
+            total_reclaimed += t.memory_mb
+            console.print(f"[bold green][{ICON_SUCCESS}][/bold green] Port {t.port} freed ({t.process_name} PID {t.pid})")
+        else:
+            console.print(f"[bold red][{ICON_ERROR}][/bold red] {msg}")
+
+    console.print(f"[bold green]Done! Reclaimed ~{total_reclaimed:.1f} MB RAM.[/bold green]\n")
 
 
 @app.command("free", help="Safely free occupied ports, PIDs, or background apps (e.g. devctl free spotify).")
 def free_ports_cmd(
     targets: Optional[List[str]] = typer.Argument(None, help="One or more ports, PIDs, or process names (e.g. 8000, 30828, or spotify)"),
+    dev: bool = typer.Option(False, "--dev", "-d", help="Sweep and terminate all lingering development servers (Node, Vite, Next, Uvicorn, Flask)"),
     zombies: bool = typer.Option(False, "--zombies", "-z", help="Prune all detected orphaned zombie development processes"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     force: bool = typer.Option(False, "--force", "-f", help="Force termination on privileged ports (<1024)"),
 ):
     """Frees ports or terminates processes using two-stage termination with TOCTOU race protection."""
+    if dev:
+        handle_free_dev_servers(yes=yes)
+        if not targets:
+            return
+
     if zombies:
         handle_zombies(prune=yes)
         if not targets:
             return
 
     if not targets:
-        console.print("[yellow]Usage: devctl free <port | PID | name> or devctl free --zombies[/yellow]")
+        if sys.stdin.isatty():
+            handle_interactive_free()
+            return
+
+        console.print("[yellow]Usage: devctl free <port | PID | name> or devctl free --dev or devctl free --zombies[/yellow]")
         console.print("Examples:")
         console.print("  `devctl free 8000`           (free port 8000)")
+        console.print("  `devctl free --dev`          (sweep all lingering dev servers)")
         console.print("  `devctl free spotify`        (kill Spotify instances & reclaim RAM)")
         console.print("  `devctl free --zombies`      (prune dead/orphaned processes)")
         return
@@ -550,24 +690,33 @@ def handle_zombies(
 def doctor_cmd(
     py: bool = typer.Option(False, "--py", "-p", help="Catalog all Python runtimes installed across your machine"),
     ctx: bool = typer.Option(False, "--ctx", "-c", help="Generate clean markdown context snapshot for AI coding agents"),
+    json_out: bool = typer.Option(False, "--json", help="Output machine-readable JSON diagnostic report"),
 ):
     """Diagnoses PATH desyncs, missing virtualenvs, and pip/python alignment."""
     if py:
-        catalog_pythons()
+        catalog_pythons(json_out=json_out)
         return
     if ctx:
         export_context_cmd()
         return
 
     diag = diagnose_environment()
+    if json_out:
+        print(json.dumps(diag.to_dict(), indent=2))
+        return
+
     panel = render_doctor_panel(diag)
     console.print(panel)
 
 
 @app.command("py", hidden=True)
-def catalog_pythons():
+def catalog_pythons(json_out: bool = False):
     """Lists Windows py launcher runtimes, MSYS2, PATH pythons, and local venvs."""
     runtimes = discover_system_pythons()
+    if json_out:
+        print(json.dumps([r.to_dict() for r in runtimes], indent=2))
+        return
+
     if not runtimes:
         console.print("[yellow]No Python runtimes could be automatically discovered.[/yellow]")
         return
@@ -579,13 +728,32 @@ def catalog_pythons():
 @app.command("run", context_settings={"allow_extra_args": True, "ignore_unknown_options": True}, help="Execute a command directly inside the local project .venv without activation.")
 def run_cmd(
     ctx: typer.Context,
+    free_port_opt: Optional[int] = typer.Option(None, "--free-port", "-f", help="Automatically free port if occupied before running"),
 ):
-    """Auto-routes any command into the local virtual environment."""
+    """Auto-routes any command into the local virtual environment, optionally clearing an occupied port first."""
     args = ctx.args
     if not args:
-        console.print("[yellow]Usage: devctl run <command> [args...][/yellow]")
-        console.print("Example: `devctl run uvicorn dummy_api:app --reload` or `devctl run pytest`")
+        console.print("[yellow]Usage: devctl run [--free-port <PORT>] <command> [args...][/yellow]")
+        console.print("Example: `devctl run --free-port 3000 npm run dev` or `devctl run pytest`")
         raise typer.Exit(code=1)
+
+    if free_port_opt is not None:
+        try:
+            port_num = validate_port(free_port_opt)
+            info = get_port_info(port_num)
+            if info is not None:
+                if info.is_system:
+                    console.print(f"[bold red][{ICON_ERROR}] Cannot free port {port_num}: Occupied by protected system process '{info.process_name}' (PID {info.pid}).[/bold red]")
+                    raise typer.Exit(code=1)
+                console.print(f"[dim]Pre-flight: Clearing occupied port {port_num} ({info.process_name} PID {info.pid})...[/dim]")
+                ok, msg, _ = free_port(port_num)
+                if ok:
+                    console.print(f"[bold green][{ICON_SUCCESS}] Port {port_num} freed.[/bold green]")
+                else:
+                    console.print(f"[bold yellow][{ICON_WARN}] Notice on port {port_num}: {msg}[/bold yellow]")
+        except ValueError as ve:
+            console.print(f"[bold red][{ICON_ERROR}] {str(ve)}[/bold red]")
+            raise typer.Exit(code=1)
 
     exit_code = run_in_venv(args)
     raise typer.Exit(code=exit_code)
@@ -605,5 +773,13 @@ def add_package_cmd(
         raise typer.Exit(code=1)
 
 
+@app.command("mcp", help="Launch native Model Context Protocol (MCP) server over stdio for AI coding agents.")
+def mcp_cmd():
+    """Runs the stdio JSON-RPC MCP server for Cursor, Claude Desktop, Antigravity."""
+    from .mcp.server import run_mcp_server
+    run_mcp_server()
+
+
 if __name__ == "__main__":
     app()
+

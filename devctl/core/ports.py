@@ -183,3 +183,81 @@ def get_port_info(port: int) -> Optional[PortInfo]:
 def is_port_in_use(port: int) -> bool:
     """Returns True if the specified port currently has an active listener."""
     return get_port_info(port) is not None
+
+
+DEV_SERVER_KEYWORDS = {
+    "node", "vite", "next", "webpack", "esbuild", "nodemon",
+    "astro", "remix", "tsx", "ts-node", "uvicorn", "gunicorn",
+    "flask", "fastapi", "django", "streamlit", "gradio",
+    "celery", "air", "cargo-watch"
+}
+
+DATABASE_KEYWORDS = {
+    "postgres", "mysqld", "mongod", "redis", "clickhouse", "mariadb", "cockroach"
+}
+
+IDE_KEYWORDS = {
+    "antigravity", "code", "cursor", "windsurf", "pycharm", "idea", "sublime", "fleet", "zed"
+}
+
+
+def is_ancestor_or_self_process(pid: Optional[int]) -> bool:
+    """Returns True if the pid belongs to current process or any of its parent processes."""
+    if pid is None or pid <= 0:
+        return True
+    try:
+        curr = psutil.Process(os.getpid())
+        if curr.pid == pid:
+            return True
+        for p in curr.parents():
+            if p.pid == pid:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def find_dev_servers(ports: Optional[List[PortInfo]] = None) -> List[PortInfo]:
+    """
+    Finds active listening ports running development servers (Node, Vite, Next, Uvicorn, Flask, etc.)
+    Strictly shields system processes, databases, and code editors/IDEs.
+    """
+    if ports is None:
+        ports = scan_listening_ports()
+
+    dev_servers: List[PortInfo] = []
+
+    for p in ports:
+        if p.is_system or not p.pid:
+            continue
+        if is_ancestor_or_self_process(p.pid):
+            continue
+
+        p_name = (p.process_name or "").lower()
+        cmd = (p.cmdline or "").lower()
+        category = (p.category or "").upper()
+
+        # Hard exclusions
+        if category in ("SYSTEM", "DATABASE", "IDE"):
+            continue
+        if any(db in p_name for db in DATABASE_KEYWORDS):
+            continue
+        if any(ide in p_name for ide in IDE_KEYWORDS):
+            continue
+
+        # Inclusion criteria:
+        is_dev = (
+            category == "DEV"
+            or any(kw in p_name for kw in DEV_SERVER_KEYWORDS)
+            or any(kw in cmd for kw in DEV_SERVER_KEYWORDS)
+            or "runserver" in cmd
+            or "app.py" in cmd
+            or "server.py" in cmd
+            or "main.py" in cmd
+        )
+
+        if is_dev:
+            dev_servers.append(p)
+
+    return dev_servers
+
