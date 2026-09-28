@@ -47,3 +47,25 @@ def test_lookup_safe_to_kill_background():
     ctx_spotify = lookup_port_context(7768, "Spotify.exe")
     assert ctx_spotify.category == "BACKGROUND"
     assert ctx_spotify.safety_verdict == "SAFE_TO_KILL"
+
+
+def test_vibe_coder_explanation_fields():
+    """Verify that vibe-coder plain English explanation fields are accurately populated."""
+    # Spotify bloat
+    ctx_spotify = lookup_port_context(7768, "Spotify.exe")
+    assert ctx_spotify.can_i_kill == "YES"
+    assert "USELESS" in ctx_spotify.is_useless_or_mandatory
+    assert "Spotify" in ctx_spotify.what_is_it
+    assert len(ctx_spotify.what_breaks) > 0
+
+    # Antigravity IDE active editor
+    ctx_editor = lookup_port_context(50917, "Antigravity IDE.exe")
+    assert ctx_editor.can_i_kill == "NO"
+    assert "ACTIVE CODING" in ctx_editor.is_useless_or_mandatory
+    assert "editor" in ctx_editor.what_is_it.lower()
+
+    # Windows OS System
+    ctx_sys = lookup_port_context(135, "svchost.exe")
+    assert ctx_sys.can_i_kill == "NO"
+    assert "MANDATORY" in ctx_sys.is_useless_or_mandatory
+

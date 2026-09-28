@@ -105,41 +105,172 @@ def render_ports_table(ports: List[PortInfo]) -> Table:
     return table
 
 
-def render_explain_panel(ctx: PortContext, info: Optional[PortInfo] = None) -> Panel:
-    """Renders in-depth technical explanation and safety advice for a target port."""
+def render_explain_panel(
+    ctx: PortContext,
+    info: Optional[PortInfo] = None,
+    target_label: Optional[str] = None,
+) -> Panel:
+    """Renders in-depth, vibe-coder friendly technical explanation and safety advice."""
     lines = []
 
-    lines.append(f"[bold cyan]PORT {ctx.port}[/bold cyan] :: {_format_category(ctx.category)}")
-    if info and info.pid:
-        lines.append(f"  {MARK_BULLET} Process       : [bold white]{info.process_name}[/bold white] (PID {info.pid})")
-        if info.memory_mb > 0:
-            lines.append(f"  {MARK_BULLET} Memory Footprint: [green]{info.memory_mb:.1f} MB[/green]")
-        if info.cwd:
-            lines.append(f"  {MARK_BULLET} Working Dir   : [dim]{info.cwd}[/dim]")
-        if info.cmdline:
-            lines.append(f"  {MARK_BULLET} Command       : [dim]{info.cmdline}[/dim]")
+    proc_name = info.process_name if info else ""
+    pid_str = f"PID {info.pid}" if info and info.pid else ""
 
-    lines.append("")
-    lines.append(f"[bold white]TECHNICAL PURPOSE:[/bold white]")
-    lines.append(f"  {ctx.purpose}")
-
-    lines.append("")
-    lines.append(f"[bold white]SAFETY VERDICT:[/bold white]")
-    if ctx.safety_verdict == "PROTECTED":
-        verdict_str = "[bold red][PROTECTED - DO NOT TERMINATE][/bold red]"
-    elif ctx.safety_verdict == "SAFE_TO_KILL":
-        verdict_str = "[bold green][SAFE TO TERMINATE][/bold green]"
-    elif ctx.safety_verdict == "DEV_TARGET":
-        verdict_str = "[bold yellow][ACTIVE DEV SERVER - TARGET ON CONFLICT][/bold yellow]"
+    # Target line
+    if ctx.port > 0:
+        target_desc = f"[bold cyan]Port {ctx.port}[/bold cyan]"
+        if proc_name:
+            target_desc += f"  ·  [bold white]{proc_name}[/bold white]"
+        if pid_str:
+            target_desc += f" [yellow]({pid_str})[/yellow]"
     else:
-        verdict_str = "[bold cyan][CONDITIONAL - KEEP IF USING][/bold cyan]"
+        target_desc = f"[bold cyan]{proc_name or 'Process'}[/bold cyan]"
+        if pid_str:
+            target_desc += f" [yellow]({pid_str})[/yellow]"
 
-    lines.append(f"  {verdict_str}")
-    lines.append(f"  {ctx.recommendation}")
+    lines.append(f"  TARGET         : {target_desc}")
+
+    # Classification & Category Badge
+    role_text = ctx.is_useless_or_mandatory or ctx.category
+    cat_badge = _format_category(ctx.category)
+    lines.append(f"  ROLE           : [bold white]{role_text}[/bold white]  ·  {cat_badge}")
+
+    if info and info.memory_mb > 0:
+        lines.append(f"  RAM CONSUMED   : [green]{info.memory_mb:.1f} MB[/green]")
+    if info and info.cwd:
+        lines.append(f"  WORKING DIR    : [dim]{info.cwd}[/dim]")
+    if info and info.cmdline:
+        lines.append(f"  COMMAND        : [dim]{info.cmdline}[/dim]")
+
+    lines.append("")
+    lines.append("[dim]────────────────────────────────────────────────────────────────────────[/dim]")
+
+    # 1. WHAT IS THIS?
+    lines.append("[bold white]WHAT IS THIS?[/bold white]")
+    what_text = ctx.what_is_it or ctx.purpose or "Active network listener."
+    lines.append(f"  {what_text}")
+    if ctx.purpose and ctx.purpose != ctx.what_is_it:
+        lines.append(f"  [dim]Technical description: {ctx.purpose}[/dim]")
+
+    lines.append("")
+
+    # 2. CAN I KILL IT?
+    lines.append("[bold white]CAN I KILL IT?[/bold white]")
+    if ctx.can_i_kill == "NO" or ctx.safety_verdict == "PROTECTED":
+        verdict_badge = "[bold red][NO - DO NOT TERMINATE][/bold red]"
+        verdict_advice = "[red]This process is protected or critical to your system/editor. Never kill.[/red]"
+    elif ctx.can_i_kill == "YES" or ctx.safety_verdict == "SAFE_TO_KILL":
+        verdict_badge = "[bold green][YES - 100% SAFE TO KILL][/bold green]"
+        verdict_advice = "[green]Completely safe to terminate. Zero negative impact on your coding workspace.[/green]"
+    elif ctx.safety_verdict == "DEV_TARGET":
+        verdict_badge = "[bold yellow][SAFE TO RESTART / KILL ON CONFLICT][/bold yellow]"
+        verdict_advice = "[yellow]Active development server. Safe to kill if restarting or fixing port conflicts.[/yellow]"
+    else:
+        verdict_badge = "[bold cyan][CONDITIONAL - KEEP IF ACTIVELY USING][/bold cyan]"
+        verdict_advice = f"[cyan]{ctx.recommendation}[/cyan]"
+
+    lines.append(f"  {verdict_badge}")
+    lines.append(f"  {verdict_advice}")
+
+    lines.append("")
+
+    # 3. WHAT HAPPENS IF I KILL IT?
+    lines.append("[bold white]WHAT HAPPENS IF I KILL IT?[/bold white]")
+    breaks_text = ctx.what_breaks or "The process will terminate and its port will be released."
+    lines.append(f"  {breaks_text}")
+
+    lines.append("")
+
+    # 4. ACTION & COMMAND
+    lines.append("[bold white]ACTION & COMMAND:[/bold white]")
+    if ctx.how_to_kill:
+        lines.append(f"  {ctx.how_to_kill}")
+    elif ctx.can_i_kill == "YES" and ctx.port > 0:
+        lines.append(f"  Run: [bold cyan]devctl free {ctx.port}[/bold cyan] to release this port and reclaim RAM.")
+    elif ctx.can_i_kill == "NO":
+        lines.append("  [dim]Leave untouched. No action required.[/dim]")
+    else:
+        lines.append(f"  Run: [bold cyan]devctl free {ctx.port}[/bold cyan] when you are finished testing.")
+
+    panel_title = f"[bold cyan]devctl explain · {target_label or (f'Port {ctx.port}' if ctx.port > 0 else proc_name)}[/bold cyan]"
 
     return Panel(
         "\n".join(lines),
-        title=f"[bold cyan]devctl explain · Port {ctx.port}[/bold cyan]",
+        title=panel_title,
+        border_style="cyan",
+        box=box.ROUNDED,
+    )
+
+
+def render_suggestions_panel(ports: List[PortInfo]) -> Panel:
+    """Renders contextual recommendations on which ports are useless bloat vs mandatory."""
+    lines = []
+
+    bloat = [
+        p for p in ports
+        if p.category == "BACKGROUND" or (not p.is_system and "spotify" in (p.process_name or "").lower())
+    ]
+    dev_servers = [
+        p for p in ports
+        if p.category in ("DEV_SERVER", "AI_UI", "NOTEBOOK") and not p.is_system
+    ]
+    databases_and_ai = [
+        p for p in ports
+        if p.category in ("DATABASE", "AI_LLM", "VECTOR_DB") and not p.is_system
+    ]
+    ide_tools = [
+        p for p in ports
+        if p.category == "IDE" and not p.is_system
+    ]
+    system_ports = [p for p in ports if p.is_system]
+
+    lines.append("[bold cyan]SMART PORT INTELLIGENCE & RECLAIM OPPORTUNITIES[/bold cyan]")
+    lines.append("")
+
+    has_content = False
+
+    if bloat:
+        has_content = True
+        total_bloat_mb = sum(p.memory_mb for p in bloat)
+        lines.append(f"[bold green]• USELESS BACKGROUND BLOAT (Safe to terminate · Free ~{total_bloat_mb:.0f} MB RAM):[/bold green]")
+        for p in bloat:
+            proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · [green]{p.memory_mb:.1f} MB[/green]  -->  Run: [bold yellow]`devctl free {p.port}`[/bold yellow]")
+        lines.append("")
+
+    if dev_servers:
+        has_content = True
+        lines.append("[bold yellow]• ACTIVE DEV SERVERS & APIS (Safe to free if restarting or resolving collisions):[/bold yellow]")
+        for p in dev_servers:
+            proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · {p.purpose}  -->  Run: [dim]`devctl free {p.port}`[/dim] to restart")
+        lines.append("")
+
+    if databases_and_ai:
+        has_content = True
+        lines.append("[bold magenta]• LOCAL DATABASES & AI MODELS (Keep running if app connects):[/bold magenta]")
+        for p in databases_and_ai:
+            proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · {p.purpose}")
+        lines.append("")
+
+    if ide_tools:
+        has_content = True
+        lines.append("[bold cyan]• ACTIVE CODING TOOLS & IDES (Keep running · Never terminate while coding):[/bold cyan]")
+        for p in ide_tools:
+            proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · Active editor window")
+        lines.append("")
+
+    if system_ports:
+        lines.append(f"[dim]• Windows System Daemons: {len(system_ports)} protected port(s) (135, 445, etc.) · Locked by devctl safety guards.[/dim]")
+
+    if not has_content:
+        lines.append("[dim]No dev servers or background bloat listeners currently active.[/dim]")
+
+    return Panel(
+        "\n".join(lines),
+        title="[bold cyan]devctl · Action Suggestions[/bold cyan]",
         border_style="cyan",
         box=box.ROUNDED,
     )

@@ -78,3 +78,30 @@ def test_cli_free_already_free_port():
     result = runner.invoke(app, ["free", "59986", "-y"])
     assert result.exit_code == 0
     assert "already free" in result.output
+
+
+def test_cli_explain_process_name():
+    """devctl explain spotify should explain Spotify process context in plain English."""
+    result = runner.invoke(app, ["explain", "spotify"])
+    assert result.exit_code == 0
+    assert "WHAT IS THIS?" in result.output
+    assert "CAN I KILL IT?" in result.output
+    assert "WHAT HAPPENS IF I KILL IT?" in result.output
+
+
+def test_cli_explain_pid():
+    """devctl explain <current_process_pid> should identify the running process."""
+    import os
+    pid = str(os.getpid())
+    result = runner.invoke(app, ["explain", pid])
+    assert result.exit_code == 0
+    assert "PID " in result.output
+    assert "WHAT IS THIS?" in result.output
+
+
+def test_cli_summary():
+    """devctl summary should output smart intelligence panel without errors."""
+    result = runner.invoke(app, ["summary"])
+    assert result.exit_code == 0
+    assert "SMART PORT INTELLIGENCE" in result.output
+
