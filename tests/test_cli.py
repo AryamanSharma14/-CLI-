@@ -21,7 +21,7 @@ def test_cli_doctor():
     """devctl doctor should run and display the diagnosis panel."""
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 0
-    assert "Environment Doctor" in result.output
+    assert "Environment Audit" in result.output
     assert "PROJECT ENVIRONMENT" in result.output
 
 
@@ -36,6 +36,34 @@ def test_cli_ports():
     """devctl ports should run cleanly without crashing."""
     result = runner.invoke(app, ["ports"])
     assert result.exit_code == 0
+
+
+def test_cli_explain():
+    """devctl explain 5432 should explain Postgres port."""
+    result = runner.invoke(app, ["explain", "5432"])
+    assert result.exit_code == 0
+    assert "DATABASE" in result.output
+    assert "PostgreSQL" in result.output
+
+
+def test_cli_heavy():
+    """devctl heavy should display resource consumption table."""
+    result = runner.invoke(app, ["heavy"])
+    assert result.exit_code == 0
+
+
+def test_cli_ai():
+    """devctl ai should display AI runtime status panel."""
+    result = runner.invoke(app, ["ai"])
+    assert result.exit_code == 0
+    assert "Ollama" in result.output
+
+
+def test_cli_ctx():
+    """devctl ctx should output markdown environment context."""
+    result = runner.invoke(app, ["ctx"])
+    assert result.exit_code == 0
+    assert "Local Environment Context" in result.output
 
 
 def test_cli_ports_invalid_filter():

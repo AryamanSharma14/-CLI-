@@ -12,6 +12,8 @@ class PortInfo:
     process_name: str = "Unknown"
     cmdline: str = ""
     cwd: str = ""
+    category: str = "DEV"
+    purpose: str = ""
     memory_mb: float = 0.0
     cpu_percent: float = 0.0
     create_time: float = 0.0

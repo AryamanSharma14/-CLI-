@@ -10,6 +10,7 @@ import psutil
 
 from .models import PortInfo
 from .security import is_system_process, validate_port
+from .catalog import lookup_port_context
 
 
 DEV_PROCESS_NAMES = {
@@ -120,6 +121,11 @@ def scan_listening_ports(port_filter: Optional[int] = None, dev_only: bool = Fal
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 info.process_name = "System/Protected" if pid <= 4 else "Exited/Zombie"
                 info.is_system = is_system_process(pid, info.process_name)
+
+        # Contextual intelligence lookup
+        ctx = lookup_port_context(port, info.process_name, info.cmdline)
+        info.category = ctx.category
+        info.purpose = ctx.purpose
 
         if dev_only and info.is_system and port >= 49152:
             # Skip Windows dynamic RPC ephemeral ports for system daemons
