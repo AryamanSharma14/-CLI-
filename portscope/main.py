@@ -1,5 +1,5 @@
 """
-devctl CLI entrypoint.
+portscope CLI entrypoint.
 Defines commands: ports, explain, free, zombies, heavy, ai, ctx, doctor, py, run, and add.
 """
 
@@ -49,8 +49,8 @@ from .ui.formatters import (
 from .ui.theme import ICON_SUCCESS, ICON_ERROR, ICON_WARN, MARK_BULLET
 
 app = typer.Typer(
-    name="devctl",
-    help="devctl: The local dev runtime, port collision & Python environment guardian.",
+    name="portscope",
+    help="portscope: The local dev runtime, port collision & Python environment guardian.",
     add_completion=False,
 )
 
@@ -105,15 +105,15 @@ def list_ports(
 
         # Crisp, single-line action bar
         if hidden_count > 0 and not all_ports and not bloat:
-            console.print(f"  [dim]+ {hidden_count} internal IDE socket(s) hidden · use `devctl ports -a` to view all[/dim]")
+            console.print(f"  [dim]+ {hidden_count} internal IDE socket(s) hidden · use `portscope ports -a` to view all[/dim]")
 
         bloat_procs = [p for p in ports if p.category == "BACKGROUND" or "spotify" in (p.process_name or "").lower()]
         if bloat_procs:
             total_bloat = sum(p.memory_mb for p in bloat_procs)
             clean_name = bloat_procs[0].process_name.lower().replace(".exe", "")
-            console.print(f"  [bold yellow]Reclaimable[/bold yellow]: [green]~{total_bloat:.0f} MB RAM[/green] in background bloat · Run [bold cyan]`devctl free {clean_name}`[/bold cyan] to reclaim")
+            console.print(f"  [bold yellow]Reclaimable[/bold yellow]: [green]~{total_bloat:.0f} MB RAM[/green] in background bloat · Run [bold cyan]`portscope free {clean_name}`[/bold cyan] to reclaim")
 
-        console.print(f"  [dim]Showing {len(ports)} socket(s) · Run `devctl explain <target>` for plain-English advice[/dim]\n")
+        console.print(f"  [dim]Showing {len(ports)} socket(s) · Run `portscope explain <target>` for plain-English advice[/dim]\n")
 
     except ValueError as ve:
         console.print(f"[bold red][{ICON_ERROR}] {str(ve)}[/bold red]")
@@ -356,7 +356,7 @@ def handle_interactive_free():
     console.print(f"[bold green]Done! Reclaimed ~{total_reclaimed:.1f} MB RAM.[/bold green]\n")
 
 
-@app.command("free", help="Safely free occupied ports, PIDs, or background apps (e.g. devctl free spotify).")
+@app.command("free", help="Safely free occupied ports, PIDs, or background apps (e.g. portscope free spotify).")
 def free_ports_cmd(
     targets: Optional[List[str]] = typer.Argument(None, help="One or more ports, PIDs, or process names (e.g. 8000, 30828, or spotify)"),
     dev: bool = typer.Option(False, "--dev", "-d", help="Sweep and terminate all lingering development servers (Node, Vite, Next, Uvicorn, Flask)"),
@@ -380,12 +380,12 @@ def free_ports_cmd(
             handle_interactive_free()
             return
 
-        console.print("[yellow]Usage: devctl free <port | PID | name> or devctl free --dev or devctl free --zombies[/yellow]")
+        console.print("[yellow]Usage: portscope free <port | PID | name> or portscope free --dev or portscope free --zombies[/yellow]")
         console.print("Examples:")
-        console.print("  `devctl free 8000`           (free port 8000)")
-        console.print("  `devctl free --dev`          (sweep all lingering dev servers)")
-        console.print("  `devctl free spotify`        (kill Spotify instances & reclaim RAM)")
-        console.print("  `devctl free --zombies`      (prune dead/orphaned processes)")
+        console.print("  `portscope free 8000`           (free port 8000)")
+        console.print("  `portscope free --dev`          (sweep all lingering dev servers)")
+        console.print("  `portscope free spotify`        (kill Spotify instances & reclaim RAM)")
+        console.print("  `portscope free --zombies`      (prune dead/orphaned processes)")
         return
 
     for target in targets:
@@ -636,7 +636,7 @@ def export_context_cmd():
     ports = scan_listening_ports(dev_only=True)
 
     lines = []
-    lines.append("### Local Environment Context (via devctl)")
+    lines.append("### Local Environment Context (via portscope)")
     lines.append(f"- **OS**: {platform.system()} {platform.release()} ({platform.machine()})")
     lines.append(f"- **Project Directory**: `{diag.project_dir}`")
     lines.append(f"- **Virtualenv**: `{diag.venv_path or 'None'}` (Python {diag.venv_version or 'N/A'})")
@@ -733,8 +733,8 @@ def run_cmd(
     """Auto-routes any command into the local virtual environment, optionally clearing an occupied port first."""
     args = ctx.args
     if not args:
-        console.print("[yellow]Usage: devctl run [--free-port <PORT>] <command> [args...][/yellow]")
-        console.print("Example: `devctl run --free-port 3000 npm run dev` or `devctl run pytest`")
+        console.print("[yellow]Usage: portscope run [--free-port <PORT>] <command> [args...][/yellow]")
+        console.print("Example: `portscope run --free-port 3000 npm run dev` or `portscope run pytest`")
         raise typer.Exit(code=1)
 
     if free_port_opt is not None:

@@ -1,5 +1,5 @@
 """
-Knowledge base and contextual intelligence catalog for devctl.
+Knowledge base and contextual intelligence catalog for portscope.
 Categorizes known development, database, AI/LLM, IDE, background bloat, and OS system ports.
 Provides plain English, vibe-coder friendly explanations of what every port or process does,
 whether it is useless bloat or mandatory, whether you can kill it, what will break,
@@ -53,7 +53,7 @@ KNOWN_PORTS = {
         "MANDATORY OS SERVICE",
         "NO",
         "Windows system stability and local network routing will break immediately. May trigger BSOD.",
-        "Never terminate. Protected by devctl security policies.",
+        "Never terminate. Protected by portscope security policies.",
     ),
     139: (
         "SYSTEM",
@@ -64,7 +64,7 @@ KNOWN_PORTS = {
         "MANDATORY OS SERVICE",
         "NO",
         "Local network discovery and Windows file shares will stop working.",
-        "Never terminate. Protected by devctl security policies.",
+        "Never terminate. Protected by portscope security policies.",
     ),
     445: (
         "SYSTEM",
@@ -75,7 +75,7 @@ KNOWN_PORTS = {
         "MANDATORY OS SERVICE",
         "NO",
         "Network file shares and network printers will disconnect.",
-        "Never terminate. Protected by devctl security policies.",
+        "Never terminate. Protected by portscope security policies.",
     ),
     5040: (
         "SYSTEM",
@@ -110,7 +110,7 @@ KNOWN_PORTS = {
         "LOCAL DATABASE",
         "CONDITIONAL",
         "Any backend app or script actively trying to query MySQL will get 'Connection Refused'.",
-        "`devctl free 3306` (only terminate if you are finished working with MySQL)",
+        "`portscope free 3306` (only terminate if you are finished working with MySQL)",
     ),
     33060: (
         "DATABASE",
@@ -121,7 +121,7 @@ KNOWN_PORTS = {
         "LOCAL DATABASE",
         "CONDITIONAL",
         "Document store connections to MySQL will fail.",
-        "`devctl free 33060`",
+        "`portscope free 33060`",
     ),
     5432: (
         "DATABASE",
@@ -132,7 +132,7 @@ KNOWN_PORTS = {
         "LOCAL DATABASE",
         "CONDITIONAL",
         "Any backend app connecting to Postgres will crash with 'Connection refused'.",
-        "`devctl free 5432` (safe to run if you are finished testing database queries)",
+        "`portscope free 5432` (safe to run if you are finished testing database queries)",
     ),
     6379: (
         "DATABASE",
@@ -143,7 +143,7 @@ KNOWN_PORTS = {
         "LOCAL CACHE / BROKER",
         "CONDITIONAL",
         "Your cached sessions and background Celery/job queues will stop processing tasks.",
-        "`devctl free 6379`",
+        "`portscope free 6379`",
     ),
     27017: (
         "DATABASE",
@@ -154,7 +154,7 @@ KNOWN_PORTS = {
         "LOCAL DATABASE",
         "CONDITIONAL",
         "Apps expecting MongoDB will lose database connectivity immediately.",
-        "`devctl free 27017`",
+        "`portscope free 27017`",
     ),
 
     # AI & Local LLM Services
@@ -167,7 +167,7 @@ KNOWN_PORTS = {
         "LOCAL AI MODEL RUNNER",
         "CONDITIONAL",
         "Local AI coding agents or scripts calling http://localhost:11434 will fail. Frees massive GPU VRAM when stopped.",
-        "`devctl free 11434` (reclaims GPU VRAM if you are done running local models)",
+        "`portscope free 11434` (reclaims GPU VRAM if you are done running local models)",
     ),
     1234: (
         "AI_LLM",
@@ -178,7 +178,7 @@ KNOWN_PORTS = {
         "LOCAL AI MODEL RUNNER",
         "CONDITIONAL",
         "Local model API endpoints will stop responding. Frees GPU VRAM.",
-        "`devctl free 1234`",
+        "`portscope free 1234`",
     ),
     6333: (
         "VECTOR_DB",
@@ -189,7 +189,7 @@ KNOWN_PORTS = {
         "AI VECTOR DATABASE",
         "CONDITIONAL",
         "Vector search queries and RAG retrieval pipelines will crash.",
-        "`devctl free 6333`",
+        "`portscope free 6333`",
     ),
     19530: (
         "VECTOR_DB",
@@ -200,7 +200,7 @@ KNOWN_PORTS = {
         "AI VECTOR DATABASE",
         "CONDITIONAL",
         "Vector index queries will stop working.",
-        "`devctl free 19530`",
+        "`portscope free 19530`",
     ),
     7860: (
         "AI_UI",
@@ -211,7 +211,7 @@ KNOWN_PORTS = {
         "AI PROTOTYPE UI",
         "YES",
         "Only the web demo tab will close. Your code and trained models remain completely safe.",
-        "`devctl free 7860`",
+        "`portscope free 7860`",
     ),
     8501: (
         "AI_UI",
@@ -222,7 +222,7 @@ KNOWN_PORTS = {
         "AI / DATA DASHBOARD",
         "YES",
         "The Streamlit browser tab will disconnect. Safe to free.",
-        "`devctl free 8501`",
+        "`portscope free 8501`",
     ),
     8188: (
         "AI_IMAGE",
@@ -233,7 +233,7 @@ KNOWN_PORTS = {
         "AI IMAGE GENERATOR",
         "CONDITIONAL",
         "Image generation workflows will stop. Frees massive GPU VRAM when stopped.",
-        "`devctl free 8188`",
+        "`portscope free 8188`",
     ),
     8888: (
         "NOTEBOOK",
@@ -244,7 +244,7 @@ KNOWN_PORTS = {
         "CODING NOTEBOOK",
         "CONDITIONAL",
         "Make sure to save your open notebook before terminating, or unsaved cells may be lost.",
-        "`devctl free 8888`",
+        "`portscope free 8888`",
     ),
 
     # Web & Full-Stack Dev Servers
@@ -257,7 +257,7 @@ KNOWN_PORTS = {
         "LOCAL DEV SERVER",
         "YES",
         "The browser preview at http://localhost:3000 will stop loading. Safe to kill if restarting `npm run dev`.",
-        "`devctl free 3000`",
+        "`portscope free 3000`",
     ),
     5173: (
         "DEV_SERVER",
@@ -268,7 +268,7 @@ KNOWN_PORTS = {
         "LOCAL DEV SERVER",
         "YES",
         "The frontend localhost:5173 browser tab will disconnect. Safe to free if blocked.",
-        "`devctl free 5173`",
+        "`portscope free 5173`",
     ),
     4200: (
         "DEV_SERVER",
@@ -279,7 +279,7 @@ KNOWN_PORTS = {
         "LOCAL DEV SERVER",
         "YES",
         "Angular dev preview will stop.",
-        "`devctl free 4200`",
+        "`portscope free 4200`",
     ),
     5000: (
         "DEV_SERVER",
@@ -290,7 +290,7 @@ KNOWN_PORTS = {
         "LOCAL DEV SERVER",
         "YES",
         "The web API listening on port 5000 will stop.",
-        "`devctl free 5000`",
+        "`portscope free 5000`",
     ),
     8080: (
         "DEV_SERVER",
@@ -301,7 +301,7 @@ KNOWN_PORTS = {
         "LOCAL DEV SERVER",
         "YES",
         "Terminates whatever server is listening on port 8080.",
-        "`devctl free 8080`",
+        "`portscope free 8080`",
     ),
 
     # Background Utilities & Bloat
@@ -314,7 +314,7 @@ KNOWN_PORTS = {
         "USELESS BACKGROUND BLOAT",
         "YES",
         "Zero impact on coding! Music might pause. Frees over 250 MB of RAM immediately.",
-        "`devctl free 7768`",
+        "`portscope free 7768`",
     ),
     57621: (
         "BACKGROUND",
@@ -325,7 +325,7 @@ KNOWN_PORTS = {
         "USELESS BACKGROUND BLOAT",
         "YES",
         "Zero impact on coding! Frees memory.",
-        "`devctl free 57621`",
+        "`portscope free 57621`",
     ),
     58768: (
         "BACKGROUND",
@@ -336,7 +336,7 @@ KNOWN_PORTS = {
         "USELESS BACKGROUND BLOAT",
         "YES",
         "Zero impact on coding! Frees memory.",
-        "`devctl free 58768`",
+        "`portscope free 58768`",
     ),
     42050: (
         "BACKGROUND",
@@ -347,7 +347,7 @@ KNOWN_PORTS = {
         "USELESS BACKGROUND BLOAT",
         "YES",
         "Cloud file syncing pauses temporarily until OneDrive is reopened. Zero dev impact.",
-        "`devctl free 42050`",
+        "`portscope free 42050`",
     ),
     59465: (
         "REMOTE",
@@ -358,7 +358,7 @@ KNOWN_PORTS = {
         "REMOTE DEV CONNECTION",
         "CONDITIONAL",
         "Your active SSH remote terminal session will disconnect immediately.",
-        "`devctl free 59465`",
+        "`portscope free 59465`",
     ),
 }
 
@@ -442,7 +442,7 @@ def lookup_port_context(
                 is_useless_or_mandatory="AI VECTOR DATABASE",
                 can_i_kill="YES",
                 what_breaks="AI vector search and RAG retrieval pipelines will crash.",
-                how_to_kill="`devctl free 8000`",
+                how_to_kill="`portscope free 8000`",
             )
         if "vllm" in cmd_lower:
             return PortContext(
@@ -455,7 +455,7 @@ def lookup_port_context(
                 is_useless_or_mandatory="LOCAL AI MODEL RUNNER",
                 can_i_kill="YES",
                 what_breaks="Local LLM inference requests will fail. Reclaims massive GPU VRAM.",
-                how_to_kill="`devctl free 8000`",
+                how_to_kill="`portscope free 8000`",
             )
         if "uvicorn" in cmd_lower or "fastapi" in cmd_lower or "python" in clean_proc:
             return PortContext(
@@ -468,7 +468,7 @@ def lookup_port_context(
                 is_useless_or_mandatory="LOCAL DEV SERVER",
                 can_i_kill="YES",
                 what_breaks="Your local backend API stops. Safe to kill if you want to restart it.",
-                how_to_kill="`devctl free 8000`",
+                how_to_kill="`portscope free 8000`",
             )
         return PortContext(
             port=8000,
@@ -480,7 +480,7 @@ def lookup_port_context(
             is_useless_or_mandatory="LOCAL DEV SERVER",
             can_i_kill="YES",
             what_breaks="The web server on port 8000 stops listening.",
-            how_to_kill="`devctl free 8000`",
+            how_to_kill="`portscope free 8000`",
         )
 
     # 3. Check known port dictionary
@@ -511,7 +511,7 @@ def lookup_port_context(
             is_useless_or_mandatory="USELESS BACKGROUND BLOAT",
             can_i_kill="YES",
             what_breaks="Zero impact on your code! Only Spotify music stops. Reclaims ~250-350 MB of RAM immediately.",
-            how_to_kill=f"`devctl free {port}`" if port > 0 else "`devctl free spotify`",
+            how_to_kill=f"`portscope free {port}`" if port > 0 else "`portscope free spotify`",
         )
 
     if "onedrive" in proc_lower:
@@ -525,7 +525,7 @@ def lookup_port_context(
             is_useless_or_mandatory="USELESS BACKGROUND BLOAT",
             can_i_kill="YES",
             what_breaks="Nothing in your code! File syncing pauses temporarily until you reopen OneDrive.",
-            how_to_kill=f"`devctl free {port}`" if port > 0 else "`devctl free onedrive`",
+            how_to_kill=f"`portscope free {port}`" if port > 0 else "`portscope free onedrive`",
         )
 
     if "discord" in proc_lower:
@@ -539,7 +539,7 @@ def lookup_port_context(
             is_useless_or_mandatory="USELESS BACKGROUND BLOAT",
             can_i_kill="YES",
             what_breaks="Zero impact on dev! Discord voice/chat disconnects. Frees 150-300 MB of RAM.",
-            how_to_kill=f"`devctl free {port}`" if port > 0 else "`devctl free discord`",
+            how_to_kill=f"`portscope free {port}`" if port > 0 else "`portscope free discord`",
         )
 
     # 5. System process check: Genuine OS daemons or PIDs <= 4
@@ -560,7 +560,7 @@ def lookup_port_context(
             is_useless_or_mandatory="MANDATORY OS SERVICE",
             can_i_kill="NO",
             what_breaks="Killing this will crash Windows, trigger a blue screen (BSOD), or disconnect network drives.",
-            how_to_kill="Never terminate. Protected by devctl system safeguards.",
+            how_to_kill="Never terminate. Protected by portscope system safeguards.",
         )
 
     # 6. Fallback for unclassified ports or standalone processes
@@ -570,7 +570,7 @@ def lookup_port_context(
         role = "LOCAL DEV SERVER" if port >= 1024 else "MANDATORY OS SERVICE"
         can_kill = "YES" if port >= 1024 else "NO"
         breaks = f"The service listening on port {port} will stop." if port >= 1024 else "Windows operating system network functions may break."
-        how = f"`devctl free {port}`" if port >= 1024 else "Do not terminate."
+        how = f"`portscope free {port}`" if port >= 1024 else "Do not terminate."
         return PortContext(
             port=port,
             category=category,
@@ -595,5 +595,5 @@ def lookup_port_context(
             is_useless_or_mandatory="RUNNING PROCESS",
             can_i_kill="CONDITIONAL",
             what_breaks=f"Terminating this process will close {process_name or 'the application'}.",
-            how_to_kill=f"`devctl free {process_name}`" if process_name else "Check task manager",
+            how_to_kill=f"`portscope free {process_name}`" if process_name else "Check task manager",
         )

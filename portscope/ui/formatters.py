@@ -194,13 +194,13 @@ def render_explain_panel(
     if ctx.how_to_kill:
         lines.append(f"  {ctx.how_to_kill}")
     elif ctx.can_i_kill == "YES" and ctx.port > 0:
-        lines.append(f"  Run: [bold cyan]devctl free {ctx.port}[/bold cyan] to release this port and reclaim RAM.")
+        lines.append(f"  Run: [bold cyan]portscope free {ctx.port}[/bold cyan] to release this port and reclaim RAM.")
     elif ctx.can_i_kill == "NO":
         lines.append("  [dim]Leave untouched. No action required.[/dim]")
     else:
-        lines.append(f"  Run: [bold cyan]devctl free {ctx.port}[/bold cyan] when you are finished testing.")
+        lines.append(f"  Run: [bold cyan]portscope free {ctx.port}[/bold cyan] when you are finished testing.")
 
-    panel_title = f"[bold cyan]devctl explain · {target_label or (f'Port {ctx.port}' if ctx.port > 0 else proc_name)}[/bold cyan]"
+    panel_title = f"[bold cyan]portscope explain · {target_label or (f'Port {ctx.port}' if ctx.port > 0 else proc_name)}[/bold cyan]"
 
     return Panel(
         "\n".join(lines),
@@ -243,7 +243,7 @@ def render_suggestions_panel(ports: List[PortInfo]) -> Panel:
         lines.append(f"[bold green]• USELESS BACKGROUND BLOAT (Safe to terminate · Free ~{total_bloat_mb:.0f} MB RAM):[/bold green]")
         for p in bloat:
             proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
-            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · [green]{p.memory_mb:.1f} MB[/green]  -->  Run: [bold yellow]`devctl free {p.port}`[/bold yellow]")
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · [green]{p.memory_mb:.1f} MB[/green]  -->  Run: [bold yellow]`portscope free {p.port}`[/bold yellow]")
         lines.append("")
 
     if dev_servers:
@@ -251,7 +251,7 @@ def render_suggestions_panel(ports: List[PortInfo]) -> Panel:
         lines.append("[bold yellow]• ACTIVE DEV SERVERS & APIS (Safe to free if restarting or resolving collisions):[/bold yellow]")
         for p in dev_servers:
             proc_desc = f"{p.process_name} (PID {p.pid})" if p.pid else p.process_name
-            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · {p.purpose}  -->  Run: [dim]`devctl free {p.port}`[/dim] to restart")
+            lines.append(f"  {MARK_BULLET} Port [bold cyan]{p.port}[/bold cyan] · [white]{proc_desc}[/white] · {p.purpose}  -->  Run: [dim]`portscope free {p.port}`[/dim] to restart")
         lines.append("")
 
     if databases_and_ai:
@@ -271,14 +271,14 @@ def render_suggestions_panel(ports: List[PortInfo]) -> Panel:
         lines.append("")
 
     if system_ports:
-        lines.append(f"[dim]• Windows System Daemons: {len(system_ports)} protected port(s) (135, 445, etc.) · Locked by devctl safety guards.[/dim]")
+        lines.append(f"[dim]• Windows System Daemons: {len(system_ports)} protected port(s) (135, 445, etc.) · Locked by portscope safety guards.[/dim]")
 
     if not has_content:
         lines.append("[dim]No dev servers or background bloat listeners currently active.[/dim]")
 
     return Panel(
         "\n".join(lines),
-        title="[bold cyan]devctl · Action Suggestions[/bold cyan]",
+        title="[bold cyan]portscope · Action Suggestions[/bold cyan]",
         border_style="cyan",
         box=box.ROUNDED,
     )
@@ -332,11 +332,11 @@ def render_ai_status(services: List[dict]) -> Panel:
         lines.append(f"  [{status_str:^7}] {desc}")
 
     lines.append("")
-    lines.append("[dim]Run `devctl ports -p <port>` to view process details or `devctl free <port>` to release.[/dim]")
+    lines.append("[dim]Run `portscope ports -p <port>` to view process details or `portscope free <port>` to release.[/dim]")
 
     return Panel(
         "\n".join(lines),
-        title="[bold cyan]devctl ai · Local AI Stack[/bold cyan]",
+        title="[bold cyan]portscope ai · Local AI Stack[/bold cyan]",
         border_style="cyan",
         box=box.ROUNDED,
     )
@@ -415,7 +415,7 @@ def render_doctor_panel(diag: EnvDiagnosis) -> Panel:
     content = "\n".join(lines)
     return Panel(
         content,
-        title="[bold cyan]devctl doctor · Environment Audit[/bold cyan]",
+        title="[bold cyan]portscope doctor · Environment Audit[/bold cyan]",
         border_style="cyan" if not diag.issues else "yellow",
         box=box.ROUNDED,
     )

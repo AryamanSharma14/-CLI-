@@ -20,7 +20,7 @@ from ..core.models import PortInfo
 
 TOOLS_SPEC = [
     {
-        "name": "devctl_list_ports",
+        "name": "portscope_list_ports",
         "description": "Inspect active listening TCP ports with process details, RAM consumption, and bloat classifications.",
         "inputSchema": {
             "type": "object",
@@ -37,7 +37,7 @@ TOOLS_SPEC = [
         }
     },
     {
-        "name": "devctl_explain_target",
+        "name": "portscope_explain_target",
         "description": "Analyze what a port number, PID, or process name does in plain English, with safety ratings and kill impact.",
         "inputSchema": {
             "type": "object",
@@ -51,7 +51,7 @@ TOOLS_SPEC = [
         }
     },
     {
-        "name": "devctl_free_target",
+        "name": "portscope_free_target",
         "description": "Safely free an occupied port or terminate a process with system protections and TOCTOU checks.",
         "inputSchema": {
             "type": "object",
@@ -69,7 +69,7 @@ TOOLS_SPEC = [
         }
     },
     {
-        "name": "devctl_free_dev_servers",
+        "name": "portscope_free_dev_servers",
         "description": "Sweep and safely terminate lingering Node, Vite, Next.js, Uvicorn, and Flask dev servers holding ports, while strictly protecting databases and editors.",
         "inputSchema": {
             "type": "object",
@@ -77,7 +77,7 @@ TOOLS_SPEC = [
         }
     },
     {
-        "name": "devctl_doctor",
+        "name": "portscope_doctor",
         "description": "Audit Python virtualenv status, interpreter parity, and PATH desync between pip and python.",
         "inputSchema": {
             "type": "object",
@@ -89,7 +89,8 @@ TOOLS_SPEC = [
 
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """Executes the requested tool and returns the result dictionary."""
-    if name == "devctl_list_ports":
+    canonical_name = name.replace("devctl_", "portscope_")
+    if canonical_name == "portscope_list_ports":
         include_all = bool(arguments.get("include_all", False))
         bloat_only = bool(arguments.get("bloat_only", False))
         all_ports = scan_listening_ports()
@@ -100,7 +101,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             "hidden_count": hidden,
         }
 
-    elif name == "devctl_explain_target":
+    elif canonical_name == "portscope_explain_target":
         target = str(arguments.get("target", "")).strip()
         if not target:
             return {"error": "Missing 'target' parameter."}
@@ -131,7 +132,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
                 "context": ctx.to_dict(),
             }
 
-    elif name == "devctl_free_target":
+    elif canonical_name == "portscope_free_target":
         target = str(arguments.get("target", "")).strip()
         force = bool(arguments.get("force", False))
         if not target:
@@ -143,7 +144,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             if num <= 4 or is_system_process(num, ""):
                 return {
                     "success": False,
-                    "error": f"Target {num} is a protected system component. Operation blocked by devctl security guard."
+                    "error": f"Target {num} is a protected system component. Operation blocked by portscope security guard."
                 }
 
             # Check if active listening port
@@ -210,7 +211,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
                 "terminated_count": terminated_count,
             }
 
-    elif name == "devctl_free_dev_servers":
+    elif canonical_name == "portscope_free_dev_servers":
         dev_servers = find_dev_servers()
         if not dev_servers:
             return {"success": True, "message": "No active development servers found holding ports.", "freed_ports": []}
@@ -231,7 +232,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             "reclaimed_ram_mb": round(total_ram, 1),
         }
 
-    elif name == "devctl_doctor":
+    elif canonical_name == "portscope_doctor":
         diag = diagnose_environment()
         return diag.to_dict()
 
@@ -272,7 +273,7 @@ def run_mcp_server():
                         "tools": {}
                     },
                     "serverInfo": {
-                        "name": "devctl-mcp",
+                        "name": "portscope-mcp",
                         "version": "0.2.0"
                     }
                 }

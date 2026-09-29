@@ -1,5 +1,5 @@
 """
-Security and system safety guards for devctl.
+Security and system safety guards for portscope.
 Prevents accidental termination of OS processes, TOCTOU PID reuse race conditions,
 and command injection.
 """

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "devctl"
+name = "portscope"
 version = "0.1.0"
 description = "The local dev runtime, port collision & Python environment guardian CLI."
 readme = "README.md"
@@ -24,8 +24,9 @@ dev = [
 ]
 
 [project.scripts]
-devctl = "devctl.main:app"
+portscope = "portscope.main:app"
+devctl = "portscope.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["devctl*"]
+include = ["portscope*"]

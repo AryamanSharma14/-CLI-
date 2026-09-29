@@ -1,6 +1,6 @@
 import pathlib
 import pytest
-from devctl.core.env import (
+from portscope.core.env import (
     find_local_venv,
     get_venv_python_executable,
     diagnose_environment,

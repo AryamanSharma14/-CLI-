@@ -1,3 +1,3 @@
 """
-devctl automated test suite.
+portscope automated test suite.
 """

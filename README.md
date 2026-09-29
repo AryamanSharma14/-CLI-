@@ -1,4 +1,4 @@
-# devctl
+# portscope
 
 <p align="center">
   <strong>The local dev runtime, port collision & Python environment guardian.</strong><br>
@@ -9,7 +9,7 @@
   <a href="#-test-matrix--verification"><img src="https://img.shields.io/badge/tests-51%20passed%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing"></a>
   <a href="#-architecture"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="#-security-threat-model--system-safety"><img src="https://img.shields.io/badge/security-TOCTOU%20%26%20PID%20Shield-purple.svg?style=flat-square" alt="Security Hardened"></a>
-  <a href="#-how-devctl-compares"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg?style=flat-square" alt="Cross-Platform"></a>
+  <a href="#-how-portscope-compares"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg?style=flat-square" alt="Cross-Platform"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License: MIT"></a>
 </p>
 
@@ -25,27 +25,27 @@ Every developer and AI engineer deals with these localhost frictions:
 4. **Vibe Coder Friendly Explanations**: No robotic jargon. Plain English answers to the only questions that matter: *What is this? Is it useless bloat? Can I kill it? What breaks if I kill it?*
 5. **Python Environment Desync**: You run `pip install` in one terminal, but `python app.py` crashes with `ModuleNotFoundError` because your system `$PATH` points `pip` to one Python while your terminal runs another.
 
-`devctl` is a lightweight, zero-configuration CLI designed to eliminate these headaches with speed, safety, and a clean developer-native terminal interface.
+`portscope` is a lightweight, zero-configuration CLI designed to eliminate these headaches with speed, safety, and a clean developer-native terminal interface.
 
 ---
 
-## How devctl Compares
+## How portscope Compares
 
-| Feature | `netstat` / `taskkill` | `kill-port` (npm) | `fkill` (Node) | **`devctl`** |
+| Feature | `netstat` / `taskkill` | `kill-port` (npm) | `fkill` (Node) | **`portscope`** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Contextual Purpose Classification** | [x] None | [x] None | [x] None | [x] **Database, AI, IDE, System** |
-| **Noise-Filtered Port Scan** | [x] Manual syntax per OS | [x] Blind kill only | [!] Interactive only | [x] **`devctl ports` (hides IDE noise)** |
-| **Vibe Coder Plain English Q&A** | [x] None | [x] None | [x] None | [x] **`devctl explain <port | PID | name>`** |
-| **Smart System Summary** | [x] None | [x] None | [x] None | [x] **`devctl ports -s`** (`summary`) |
-| **Heavy RAM / AI Process Hunter** | [x] Open Task Manager | [x] None | [x] None | [x] **`devctl ports --heavy`** (`heavy`) |
-| **AI Stack Health Check** | [x] None | [x] None | [x] None | [x] **`devctl ports --ai`** (`ai`) |
-| **AI Agent Context Snapshot** | [x] None | [x] None | [x] None | [x] **`devctl doctor -c`** (`ctx`) |
-| **Zombie & Orphan Process Pruning** | [x] None | [x] None | [x] None | [x] **`devctl free -z`** (`zombies`) |
+| **Noise-Filtered Port Scan** | [x] Manual syntax per OS | [x] Blind kill only | [!] Interactive only | [x] **`portscope ports` (hides IDE noise)** |
+| **Vibe Coder Plain English Q&A** | [x] None | [x] None | [x] None | [x] **`portscope explain <port | PID | name>`** |
+| **Smart System Summary** | [x] None | [x] None | [x] None | [x] **`portscope ports -s`** (`summary`) |
+| **Heavy RAM / AI Process Hunter** | [x] Open Task Manager | [x] None | [x] None | [x] **`portscope ports --heavy`** (`heavy`) |
+| **AI Stack Health Check** | [x] None | [x] None | [x] None | [x] **`portscope ports --ai`** (`ai`) |
+| **AI Agent Context Snapshot** | [x] None | [x] None | [x] None | [x] **`portscope doctor -c`** (`ctx`) |
+| **Zombie & Orphan Process Pruning** | [x] None | [x] None | [x] None | [x] **`portscope free -z`** (`zombies`) |
 | **Two-Stage Graceful Shutdown** | [x] Instant force kill | [x] Instant SIGKILL | [!] SIGTERM | [x] **SIGTERM -> 1.5s -> SIGKILL** |
 | **System Process Safety Shield** | [x] Can kill OS PIDs | [x] None | [!] Limited | [x] **Immutable OS Denylist** |
 | **TOCTOU PID Race Guard** | [x] Recycled PID risk | [x] Recycled PID risk | [x] Recycled PID risk | [x] **Timestamp Verification** |
-| **Python / PATH Doctor** | [x] None | [x] None | [x] None | [x] **`devctl doctor`** & **`-p`** |
-| **Zero-Activation Runner** | [x] None | [x] None | [x] None | [x] **`devctl run <cmd>`** |
+| **Python / PATH Doctor** | [x] None | [x] None | [x] None | [x] **`portscope doctor`** & **`-p`** |
+| **Zero-Activation Runner** | [x] None | [x] None | [x] None | [x] **`portscope run <cmd>`** |
 
 ---
 
@@ -53,9 +53,9 @@ Every developer and AI engineer deals with these localhost frictions:
 
 ```mermaid
 flowchart TD
-    CLI["devctl CLI (Typer + Rich)"]
+    CLI["portscope CLI (Typer + Rich)"]
     
-    subgraph Core["devctl Core Engine"]
+    subgraph Core["portscope Core Engine"]
         SEC["Security Guard<br/>• Immutable System Denylist<br/>• TOCTOU Identity Check<br/>• Zero shell=True"]
         CAT["Context & Catalog Engine<br/>• Port Knowledge Base<br/>• Database & AI Disambiguation<br/>• Vibe-Coder Q&A Advice"]
         PORT["Port & Socket Scanner<br/>• psutil TCP Listeners<br/>• Process CWD & Memory<br/>• Zombie Detection"]
@@ -79,15 +79,15 @@ flowchart TD
 ### 1. Installation
 
 ```bash
-git clone https://github.com/AryamanSharma14/-CLI-.git devctl
-cd devctl
+git clone https://github.com/AryamanSharma14/-CLI-.git portscope
+cd portscope
 python -m pip install -e .
 ```
 
 ### 2. Available Commands Overview
 
 ```text
-Usage: devctl [OPTIONS] COMMAND [ARGS]...
+Usage: portscope [OPTIONS] COMMAND [ARGS]...
 
 Commands:
   ports     Inspect active listening TCP ports with noise filtering & smart reclaim actions.
@@ -100,41 +100,41 @@ Commands:
 ```
 
 > [!TIP]
-> **Minimalist by design**: Rather than cluttering your CLI with dozens of sprawling commands, `devctl` uses intuitive flags (`-d` to sweep dev servers, `-b` for bloat, `-z` for zombies, `-p` for Python versions, `-a` for all sockets, `--json` for automation). Legacy shortcuts (`devctl summary`, `devctl ai`, `devctl heavy`, `devctl zombies`, `devctl py`, `devctl ctx`) remain 100% backward compatible!
+> **Minimalist by design**: Rather than cluttering your CLI with dozens of sprawling commands, `portscope` uses intuitive flags (`-d` to sweep dev servers, `-b` for bloat, `-z` for zombies, `-p` for Python versions, `-a` for all sockets, `--json` for automation). Legacy shortcuts (`portscope summary`, `portscope ai`, `portscope heavy`, `portscope zombies`, `portscope py`, `portscope ctx`) remain 100% backward compatible!
 
 ---
 
 ## Command Reference
 
-### `devctl ports`
+### `portscope ports`
 Scans all active TCP listening sockets, automatically hides internal IDE IPC noise, classifies each port, and highlights reclaimable background bloat:
 
 ```bash
 # Default view (noise-filtered, hides 20+ internal IDE sockets)
-devctl ports
+portscope ports
 
 # Show ONLY useless background bloat (Spotify, OneDrive) to reclaim RAM
-devctl ports -b
+portscope ports -b
 # or --bloat
 
 # Show all sockets including internal editor IPC
-devctl ports -a
+portscope ports -a
 # or --all
 
 # Executive system port & RAM summary
-devctl ports -s
-# or devctl summary
+portscope ports -s
+# or portscope summary
 
 # Rank heaviest dev and AI processes by memory
-devctl ports --heavy
-# or devctl heavy
+portscope ports --heavy
+# or portscope heavy
 
 # AI stack health check (Ollama, ChromaDB, vLLM, Gradio)
-devctl ports --ai
-# or devctl ai
+portscope ports --ai
+# or portscope ai
 
 # Machine-readable JSON array output
-devctl ports --json
+portscope ports --json
 ```
 
 ```text
@@ -155,14 +155,14 @@ devctl ports --json
 │  58768 │  BLOAT   │ BACKGROUND  │  19964 │ SpotifyLauncher.e… │ Spotify Launcher Helper           │  45.4 MB │
 │  59465 │  ACTIVE  │   REMOTE    │  34304 │ ssh.exe            │ SSH Tunnel / Remote Session       │  15.6 MB │
 ╰────────┴──────────┴─────────────┴────────┴────────────────────┴───────────────────────────────────┴──────────╯
-  + 26 internal IDE socket(s) hidden · use `devctl ports -a` to view all
-  Reclaimable: ~593 MB RAM in background bloat · Run `devctl free spotify` to reclaim
-  Showing 12 socket(s) · Run `devctl explain <target>` for plain-English advice
+  + 26 internal IDE socket(s) hidden · use `portscope ports -a` to view all
+  Reclaimable: ~593 MB RAM in background bloat · Run `portscope free spotify` to reclaim
+  Showing 12 socket(s) · Run `portscope explain <target>` for plain-English advice
 ```
 
 ---
 
-### `devctl explain <target>`
+### `portscope explain <target>`
 Plain English, vibe-coder friendly explanation card answering:
 - **What is this?**
 - **Is it useless bloat or mandatory?**
@@ -174,21 +174,21 @@ Works interchangeably with a **Port number** (`3000`), a **Process ID / PID** (`
 
 ```bash
 # By Port
-devctl explain 7768
+portscope explain 7768
 
 # By PID
-devctl explain 34336
+portscope explain 34336
 
 # By Name
-devctl explain spotify
-devctl explain antigravity
+portscope explain spotify
+portscope explain antigravity
 
 # Machine-readable JSON output
-devctl explain 7768 --json
+portscope explain 7768 --json
 ```
 
 ```text
-╭────────────────────────────────────────── devctl explain · Port 7768 ───────────────────────────────────────────╮
+╭────────────────────────────────────────── portscope explain · Port 7768 ───────────────────────────────────────────╮
 │   TARGET         : Port 7768  ·  Spotify.exe (PID 34336)                                                        │
 │   ROLE           : USELESS BACKGROUND BLOAT  ·  BACKGROUND                                                      │
 │   RAM CONSUMED   : 254.1 MB                                                                                     │
@@ -208,65 +208,65 @@ devctl explain 7768 --json
 │   Zero impact on coding! Music might pause. Frees over 250 MB of RAM immediately.                               │
 │                                                                                                                 │
 │ ACTION & COMMAND:                                                                                               │
-│   `devctl free 7768`                                                                                            │
+│   `portscope free 7768`                                                                                            │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ---
 
-### `devctl free <targets...>`
+### `portscope free <targets...>`
 Safely frees one or more ports, PIDs, or processes by name using two-stage termination (SIGTERM -> 1.5s -> SIGKILL).
 
-* **Interactive Keystroke Picker**: Simply run `devctl free` without arguments in an interactive terminal to choose targets with a single keystroke.
+* **Interactive Keystroke Picker**: Simply run `portscope free` without arguments in an interactive terminal to choose targets with a single keystroke.
 * **"Start Fresh" Dev Sweeper (`-d` / `--dev`)**: Sweeps and terminates all hung Node, Vite, Next.js, Uvicorn, and Flask dev servers holding ports, while strictly protecting databases and code editors.
 * **Zombie Hunter (`-z` / `--zombies`)**: Scans and prunes orphaned background dev processes.
 
 ```bash
 # Interactive numbered keystroke picker (run with zero args)
-devctl free
+portscope free
 
 # "Start Fresh" dev server sweeper (kills lingering Node/Python dev servers)
-devctl free --dev
-devctl free -d -y   # bypass confirmation
+portscope free --dev
+portscope free -d -y   # bypass confirmation
 
 # Free a port
-devctl free 8000
+portscope free 8000
 
 # Free multiple ports without confirmation prompt
-devctl free 3000 8000 -y
+portscope free 3000 8000 -y
 
 # Free by process name (finds all instances and reclaims RAM)
-devctl free spotify
+portscope free spotify
 
 # Free by PID
-devctl free 34336
+portscope free 34336
 
 # Scan & prune lingering/orphaned development processes
-devctl free -z
-# or devctl free --zombies (or legacy `devctl zombies`)
+portscope free -z
+# or portscope free --zombies (or legacy `portscope zombies`)
 ```
 
 ---
 
-### `devctl doctor`
+### `portscope doctor`
 Audits your active Python interpreter against `.venv` and flags PATH mismatches between `pip` and `python`.
 
 Supports installed runtime cataloging (`-p` / `--py`), AI context generation (`-c` / `--ctx`), and JSON output (`--json`):
 
 ```bash
 # Run 5-point environment health audit
-devctl doctor
+portscope doctor
 
 # Catalog all Python runtimes installed across your machine
-devctl doctor -p
-# or devctl doctor --py (or legacy `devctl py`)
+portscope doctor -p
+# or portscope doctor --py (or legacy `portscope py`)
 
 # Generate clean markdown context snapshot for AI coding agents
-devctl doctor -c
-# or devctl doctor --ctx (or legacy `devctl ctx`)
+portscope doctor -c
+# or portscope doctor --ctx (or legacy `portscope ctx`)
 
 # Output machine-readable JSON report
-devctl doctor --json
+portscope doctor --json
 ```
 
 ```text
@@ -284,46 +284,46 @@ devctl doctor --json
 
 ---
 
-### `devctl run <cmd>`
+### `portscope run <cmd>`
 Runs any command directly inside the project's `.venv` without manual shell activation.
 
 Includes **Pre-Flight Port Clearing (`-f` / `--free-port`)** to prevent the `EADDRINUSE` crash loop before starting your server:
 
 ```bash
 # Pre-flight: Clear port 3000 if occupied, then launch dev server
-devctl run --free-port 3000 npm run dev
-devctl run -f 8000 uvicorn main:app --reload
+portscope run --free-port 3000 npm run dev
+portscope run -f 8000 uvicorn main:app --reload
 
 # Standard zero-activation runner
-devctl run pytest tests -v
+portscope run pytest tests -v
 ```
 
 ---
 
-### `devctl add <package>`
+### `portscope add <package>`
 Safely installs a Python package into the project's `.venv` using the matching `python -m pip` binary and records it in `requirements.txt`:
 
 ```bash
-devctl add fastapi uvicorn
+portscope add fastapi uvicorn
 ```
 
 ---
 
-### `devctl mcp`
+### `portscope mcp`
 Launches a native **Model Context Protocol (MCP)** server over standard I/O (JSON-RPC 2.0).
 
 Allows AI coding assistants (such as **Cursor**, **Claude Desktop**, and **Antigravity**) to autonomously inspect listening ports, diagnose localhost collisions, and safely free stuck development servers.
 
 ```bash
-devctl mcp
+portscope mcp
 ```
 
 #### Configuration for Cursor (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "devctl": {
-      "command": "devctl",
+    "portscope": {
+      "command": "portscope",
       "args": ["mcp"]
     }
   }
@@ -334,8 +334,8 @@ devctl mcp
 ```json
 {
   "mcpServers": {
-    "devctl": {
-      "command": "devctl",
+    "portscope": {
+      "command": "portscope",
       "args": ["mcp"]
     }
   }
@@ -355,7 +355,7 @@ devctl mcp
 
 ## Test Matrix & Verification
 
-`devctl` includes a 100% passing automated test suite covering security, contextual catalog lookups, port detection, process termination, noise filtering, and Typer CLI commands:
+`portscope` includes a 100% passing automated test suite covering security, contextual catalog lookups, port detection, process termination, noise filtering, and Typer CLI commands:
 
 ```bash
 pytest tests -v

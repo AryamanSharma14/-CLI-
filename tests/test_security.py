@@ -1,6 +1,6 @@
 import pytest
 import psutil
-from devctl.core.security import (
+from portscope.core.security import (
     is_system_process,
     validate_port,
     is_privileged_port,

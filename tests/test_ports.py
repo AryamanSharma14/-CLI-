@@ -1,6 +1,6 @@
 import socket
 import pytest
-from devctl.core.ports import scan_listening_ports, get_port_info, is_port_in_use
+from portscope.core.ports import scan_listening_ports, get_port_info, is_port_in_use
 
 
 def test_scan_listening_ports_returns_list():
@@ -16,7 +16,7 @@ def test_scan_listening_ports_returns_list():
 
 
 def test_mock_tcp_listener_detection():
-    """Spin up an ephemeral TCP server and verify devctl detects it accurately."""
+    """Spin up an ephemeral TCP server and verify portscope detects it accurately."""
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Bind to port 0 to let OS assign an available high ephemeral port
     server_sock.bind(("127.0.0.1", 0))

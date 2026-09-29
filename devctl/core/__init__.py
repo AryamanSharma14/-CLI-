@@ -1,3 +1,0 @@
-"""
-devctl core engine modules.
-"""

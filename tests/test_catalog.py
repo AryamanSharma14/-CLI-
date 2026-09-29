@@ -1,4 +1,4 @@
-from devctl.core.catalog import lookup_port_context
+from portscope.core.catalog import lookup_port_context
 
 
 def test_lookup_system_port():

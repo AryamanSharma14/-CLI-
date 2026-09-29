@@ -202,7 +202,7 @@ def diagnose_environment(target_dir: Optional[pathlib.Path] = None) -> EnvDiagno
             issues.append(
                 f"Local virtualenv found at '{local_venv.name}', but current terminal is running global Python ({shell_py_resolved})."
             )
-            recommendations.append("Use `devctl run <cmd>` to automatically execute inside the project's .venv.")
+            recommendations.append("Use `portscope run <cmd>` to automatically execute inside the project's .venv.")
             recommendations.append("Or activate the virtualenv in your shell.")
     else:
         issues.append("No virtual environment (.venv) detected in this project directory.")
@@ -213,7 +213,7 @@ def diagnose_environment(target_dir: Optional[pathlib.Path] = None) -> EnvDiagno
             f"PATH Mismatch: `python` points to '{shell_py_resolved}', but `pip` points to '{shell_pip_resolved}'. Packages installed via `pip` will NOT be available to your `python` command!"
         )
         recommendations.append("Use `python -m pip install <package>` instead of plain `pip install`.")
-        recommendations.append("Or use `devctl add <package>` to guarantee installation into the project's .venv.")
+        recommendations.append("Or use `portscope add <package>` to guarantee installation into the project's .venv.")
 
     return EnvDiagnosis(
         project_dir=str(cwd),

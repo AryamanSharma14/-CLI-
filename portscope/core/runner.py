@@ -87,10 +87,10 @@ def run_in_venv(args: List[str], cwd: Optional[pathlib.Path] = None) -> int:
         )
         return process.returncode
     except FileNotFoundError:
-        print(f"[devctl] Error: Executable '{args[0]}' not found.", file=sys.stderr)
+        print(f"[portscope] Error: Executable '{args[0]}' not found.", file=sys.stderr)
         return 127
     except Exception as e:
-        print(f"[devctl] Execution failed: {str(e)}", file=sys.stderr)
+        print(f"[portscope] Execution failed: {str(e)}", file=sys.stderr)
         return 1
 
 

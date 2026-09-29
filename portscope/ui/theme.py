@@ -1,5 +1,5 @@
 """
-Visual styling and minimalist developer theme for devctl.
+Visual styling and minimalist developer theme for portscope.
 Pure typography and clean text badges without cartoonish emojis.
 """
 

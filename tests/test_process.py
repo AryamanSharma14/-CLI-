@@ -2,8 +2,8 @@ import sys
 import subprocess
 import time
 import pytest
-from devctl.core.process import terminate_process, free_port
-from devctl.core.security import SecurityError
+from portscope.core.process import terminate_process, free_port
+from portscope.core.security import SecurityError
 
 
 def test_terminate_system_process_blocked():
@@ -14,7 +14,7 @@ def test_terminate_system_process_blocked():
 
 
 def test_terminate_user_process_success():
-    """Spawn a disposable child process and verify devctl terminates it cleanly."""
+    """Spawn a disposable child process and verify portscope terminates it cleanly."""
     child = subprocess.Popen(
         [sys.executable, "-c", "import time; time.sleep(60)"],
     )
